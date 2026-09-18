@@ -1,0 +1,74 @@
+# Coder profile: edit files, run code in a sandbox, keep tests as the gate.
+# Permissions ask before anything that is not read-only, except edits inside
+# the workspace. Set sandbox.backend to docker for real isolation.
+
+name: coder
+description: A coding agent that edits files and runs commands in a sandbox.
+model: fake
+
+system_prompt: |
+  You are a software engineer working in a sandboxed workspace.
+
+  Method:
+  1. Read the relevant files before changing anything.
+  2. Keep a todo list for multi-step work and update it as you go.
+  3. Make small edits with edit_file; write whole files only when creating them.
+  4. Run the tests or the program after every meaningful change. Read the output.
+  5. When something fails, fix the cause, not the symptom. Re-run.
+  6. Write decisions and findings to notes_append so they survive context compaction.
+  7. Call finish only after verification has actually run and passed.
+
+  Commands run inside a sandbox with no network. Do not try to install packages.
+  Never touch files under .harness, .git or any configuration of the harness itself.
+
+tool_packs: [files, exec, planning, tasks, meta]
+defer_tools: [define_tool, task_stop]
+
+permissions:
+  mode: accept_edits
+  allow:
+    - "shell(python *)"
+    - "shell(pytest *)"
+    - "shell(ls *)"
+    - "shell(cat *)"
+    - "shell(git status*)"
+    - "shell(git diff*)"
+    - "shell(git log*)"
+    - "run_python"
+  deny:
+    - "shell(rm -rf *)"
+    - "shell(git push*)"
+    - "shell(sudo *)"
+  ask:
+    - "shell(git commit*)"
+    - "define_tool"
+
+sandbox:
+  backend: local              # docker | remote for real isolation
+  allow_unsafe_local: true    # required to start exec tools on the local backend
+  network: false
+  timeout_s: 120
+  image: python:3.12-slim
+
+require_finish: true
+
+gates:
+  finish:
+    - todos_done
+
+limits:
+  max_turns: 150
+  max_cost_usd: 5.0
+  max_output_tokens: 16000
+  thinking: adaptive
+
+context:
+  compact: true
+  microcompact_keep_recent: 5
+
+skills:
+  enabled: true
+  dirs: [skills]
+
+transcript: true
+checkpoints: true

@@ -1,0 +1,59 @@
+# A small application: turn a CSV of orders into a report, with a verifier
+# that recomputes the totals. The finish gate refuses until verify/verify.json
+# is fresh and says ok. Copy this file to start your own application.
+
+name: csv_report
+description: Orders CSV to a Markdown report plus a JSON summary, verified by recomputation.
+model: fake
+
+system_prompt: prompt.md
+
+tool_packs: [files, exec, planning, meta]
+defer_tools: [define_tool]
+
+permissions:
+  mode: dont_ask
+  allow:
+    - "shell(python *)"
+    - "run_python"
+  deny:
+    - "shell(rm *)"
+
+sandbox:
+  backend: local
+  allow_unsafe_local: true
+  network: false
+  timeout_s: 60
+
+phases: [plan, build, verify, done]
+phase_evidence:
+  build: file_written
+  verify: verified
+
+gates:
+  entry:
+    verify:
+      - file_exists: out/summary.json
+      - file_exists: out/report.md
+  finish:
+    - fresh_file: {path: verify/verify.json, newer_than: "out/*"}
+    - json_field: {path: verify/verify.json, key: ok, expected: true}
+    - todos_done
+
+require_finish: true
+
+hooks:
+  - event: pre_tool_use
+    matcher: "shell"
+    command: ["python", "hooks/no_destructive.py"]
+    timeout: 10
+
+limits:
+  max_turns: 60
+  max_cost_usd: 3.0
+
+skills:
+  enabled: true
+
+transcript: true
+checkpoints: true

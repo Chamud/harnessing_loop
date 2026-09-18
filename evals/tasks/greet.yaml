@@ -1,0 +1,12 @@
+name: greet
+profile: chat
+prompt: "Greet the user by name. The name is in name.txt."
+files:
+  name.txt: "Ada"
+checks:
+  - completed
+  - final_contains: "Ada"
+max_cost_usd: 0.2
+script:
+  - {tool: read_file, input: {path: name.txt}}
+  - "Hello, Ada. Welcome back."

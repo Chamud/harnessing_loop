@@ -1,0 +1,32 @@
+# Chat profile: an assistant with read-only tools and web access.
+# No sandbox, no exec, no compaction pressure. The smallest useful agent.
+
+name: chat
+description: A chat assistant that can read the workspace and fetch web pages.
+model: fake            # override at build time: profile.build(ws, model="bedrock:...")
+
+system_prompt: |
+  You are a precise assistant working inside a workspace of files.
+  Read before you answer. Quote paths when you cite a file.
+  Answer in plain prose; use lists only for parallel items.
+  When you do not know, say so and say what you would need.
+
+tool_packs: [files, web]
+exclude_tools: [write_file, edit_file]
+
+permissions:
+  mode: default          # read-only tools run without asking; nothing else exists here
+
+web:
+  allowed_domains: ["*"]
+
+limits:
+  max_turns: 40
+  max_output_tokens: 8000
+  thinking: adaptive
+
+context:
+  compact: true
+
+transcript: true
+checkpoints: false

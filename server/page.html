@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>harnessing_loop jobs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#f7f7f5; --fg:#1b1b1b; --muted:#6b6b6b; --line:#dcdcd7; --accent:#2a5bd7; --ok:#1f7a3a; --bad:#b3261e; }
+  body { margin:0; padding:16px; font:14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  h1 { font-size:18px; margin:0 0 12px; }
+  form { display:grid; gap:8px; grid-template-columns:1fr; max-width:720px; margin-bottom:16px; }
+  input, textarea, select, button { font:inherit; padding:8px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  button { background:var(--accent); color:#fff; border:0; cursor:pointer; }
+  table { border-collapse:collapse; width:100%; max-width:960px; }
+  td, th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .status-done { color:var(--ok); } .status-failed, .status-cancelled { color:var(--bad); } .muted { color:var(--muted); }
+  pre { background:#fff; border:1px solid var(--line); border-radius:6px; padding:10px; max-height:50vh; overflow:auto; white-space:pre-wrap; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row button { background:#fff; color:var(--fg); border:1px solid var(--line); }
+</style>
+</head>
+<body>
+<h1>Jobs</h1>
+<form id="new">
+  <div class="row">
+    <select name="profile"><option>chat</option><option>coder</option><option>template_app</option></select>
+    <input name="model" placeholder="model (blank = profile default)">
+  </div>
+  <textarea name="prompt" rows="3" placeholder="What should the agent do?"></textarea>
+  <button>Start job</button>
+</form>
+<table id="jobs"><thead><tr><th>id</th><th>profile</th><th>status</th><th>turns</th><th>cost</th><th>prompt</th></tr></thead><tbody></tbody></table>
+<h2 id="title" style="font-size:15px"></h2>
+<div class="row" id="controls" hidden>
+  <button data-a="pause">Pause</button><button data-a="resume">Resume</button><button data-a="cancel">Cancel</button>
+  <input id="msg" placeholder="message to the agent"><button data-a="message">Send</button>
+</div>
+<pre id="log"></pre>
+<script>
+const $ = s => document.querySelector(s);
+let current = null, es = null;
+async function refresh() {
+  const jobs = await (await fetch('/jobs')).json();
+  const tb = $('#jobs tbody'); tb.innerHTML = '';
+  for (const j of jobs) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><a href="#" data-id="${j.id}">${j.id}</a></td><td>${j.profile}</td><td class="status-${j.status}">${j.status}</td><td>${j.turns||0}</td><td>$${(j.cost_usd||0).toFixed(3)}</td><td class="muted">${(j.prompt||'').slice(0,80)}</td>`;
+    tb.appendChild(tr);
+  }
+}
+$('#new').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const body = {profile: f.get('profile'), prompt: f.get('prompt'), model: f.get('model') || null};
+  const job = await (await fetch('/jobs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})).json();
+  e.target.prompt.value = ''; await refresh(); open(job.id);
+});
+$('#jobs').addEventListener('click', e => { const id = e.target.dataset.id; if (id) { e.preventDefault(); open(id); } });
+$('#controls').addEventListener('click', async e => {
+  const a = e.target.dataset.a; if (!a || !current) return;
+  const opts = {method:'POST', headers:{'Content-Type':'application/json'}};
+  if (a === 'message') opts.body = JSON.stringify({text: $('#msg').value}); $('#msg').value = '';
+  await fetch(`/jobs/${current}/${a}`, opts); refresh();
+});
+function open(id) {
+  current = id; $('#title').textContent = `Job ${id}`; $('#controls').hidden = false; $('#log').textContent = '';
+  if (es) es.close();
+  es = new EventSource(`/jobs/${id}/events`);
+  es.onmessage = ev => {
+    const e = JSON.parse(ev.data); const d = e.data || {};
+    let line = null;
+    if (e.type === 'text_delta') { $('#log').textContent += d.text; return; }
+    if (e.type === 'tool_start') line = `\n[tool] ${d.name} ${JSON.stringify(d.input).slice(0,160)}`;
+    else if (e.type === 'tool_end') line = `[tool] ${d.name} -> ${d.is_error ? 'error' : 'ok'} ${(d.preview||'').replace(/\n/g,' ').slice(0,120)}`;
+    else if (['phase','compact','microcompact','warning','stuck','retry','permission_denied','hook_blocked','control'].includes(e.type)) line = `[${e.type}] ${JSON.stringify(d).slice(0,200)}`;
+    else if (e.type === 'run_end') line = `\n[done] ${d.reason} turns=${d.turns} cost=$${(d.cost||0).toFixed(4)}`;
+    else if (e.type === 'assistant_message') line = '';
+    if (line !== null) $('#log').textContent += line + '\n';
+    $('#log').scrollTop = $('#log').scrollHeight;
+  };
+  es.addEventListener('end', () => { es.close(); refresh(); });
+}
+refresh(); setInterval(refresh, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+name: summarize
+profile: chat
+prompt: "Summarize notes.md in one sentence."
+files:
+  notes.md: |
+    # Meeting
+    We agreed to ship the report generator on Friday and to add a verifier before release.
+checks:
+  - completed
+  - final_contains: "verifier"
+max_cost_usd: 0.2
+script:
+  - {tool: read_file, input: {path: notes.md}}
+  - "The team will ship the report generator on Friday after adding a verifier."

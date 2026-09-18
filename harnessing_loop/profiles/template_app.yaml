@@ -1,0 +1,111 @@
+# Template application profile: phases, gates, a verifier, subagents,
+# deferred tools, memory, and a finish that is refused until the evidence
+# is on disk. Copy this file and change the phases and gates for your domain.
+#
+# Every key a profile accepts is shown here.
+
+name: template_app
+description: Phased job with a verifier gate. The base for a full application.
+model: fake                      # "bedrock:<model-id>" or a direct model id
+
+system_prompt: |
+  You are the worker of an application. You receive a job, produce outputs in
+  the workspace, verify them, and declare completion with finish.
+
+  Phases (declare each with set_phase; they move forward only):
+    plan     read the inputs, write a plan to notes and a todo list
+    build    produce the outputs under out/
+    verify   run the verifier so that verify/verify.json is newer than every output
+    done     call finish with a summary
+
+  Rules:
+  - Numbers come from files, never from memory. Read, compute, write.
+  - Every output has a check. If no checker exists, write one and run it.
+  - Record decisions with notes_append. Notes survive compaction; your context does not.
+  - finish is refused until verify/verify.json exists, is fresh, and reports ok: true.
+
+tool_packs: [files, exec, planning, web, agents, tasks, meta]
+exclude_tools: []                 # names to drop from the packs
+defer_tools: [web_fetch, web_search, define_tool, task_stop, run_background]
+
+permissions:
+  mode: dont_ask                  # unattended: anything that would ask is denied
+  strip_dangerous_allows: false   # true removes allow rules for interpreters (python *, bash *, ...)
+  allow:
+    - "shell(python *)"
+    - "shell(ls *)"
+    - "run_python"
+    - "run_background(python *)"
+    - "define_tool"
+  deny:
+    - "shell(rm -rf *)"
+    - "shell(git *)"
+  ask: []
+
+sandbox:
+  backend: local                  # local (dev only) | docker | remote
+  allow_unsafe_local: true
+  network: false
+  allowed_domains: []             # honoured by backends with a proxy
+  env_allow: []                   # extra host variables to pass through, never secrets
+  env: {}                         # explicit values set inside the sandbox
+  timeout_s: 300
+  memory_mb: 2048
+  cpus: 2
+  pids: 256
+  image: python:3.12-slim
+
+web:
+  allowed_domains: []             # for web_fetch in the harness process
+
+phases: [plan, build, verify, done]
+phase_evidence:                   # evidence key that implies a phase was reached
+  build: file_written
+  verify: verified
+
+gates:
+  entry:
+    verify:
+      - file_exists: out
+  finish:
+    - fresh_file: {path: verify/verify.json, newer_than: "out/**/*"}
+    - json_field: {path: verify/verify.json, key: ok, expected: true}
+    - todos_done
+
+require_finish: true
+
+hooks: []                         # - {event: pre_tool_use, matcher: "shell", command: ["python", "hooks/check.py"], timeout: 30}
+
+limits:
+  max_turns: 300
+  max_cost_usd: 20.0
+  max_output_tokens: 32000
+  context_window_tokens: 200000
+  thinking: adaptive
+  thinking_budget_tokens: 16000
+  max_tool_concurrency: 8
+  stuck_repeat_limit: 3
+  stuck_no_evidence_turns: 15
+
+context:
+  compact: true
+  compact_buffer_tokens: 13000
+  blocking_buffer_tokens: 3000
+  compact_max_output_tokens: 20000
+  compact_max_failures: 3
+  microcompact_keep_recent: 5
+  microcompact_min_tokens: 40000
+  tool_result_max_chars: 50000
+  tool_results_budget_per_message: 200000
+
+memory:
+  dir: ~/.harnessing_loop/memory  # one fact per file, MEMORY.md index
+
+skills:
+  enabled: true
+  bundled: true
+  dirs: [skills]
+
+transcript: true
+checkpoints: true
+cache_ttl: null                   # "1h" where the provider supports it
