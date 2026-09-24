@@ -2,6 +2,11 @@
 
 Requires the optional `anthropic` package. The client is created lazily so
 importing this module without the package installed is harmless.
+
+直接 API クライアント。
+
+省略可能な `anthropic` パッケージを必要とする。クライアントは遅延生成されるので、
+パッケージが未インストールのままこのモジュールを import しても害はない。
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ class AnthropicClient:
         self.retry = retry
         self._client = client
         self.on_retry = None  # set by the loop to emit retry events
+        # 再試行イベントを発行するためにループが設定する
 
     def _sdk(self):
         if self._client is None:
@@ -132,6 +138,7 @@ class AnthropicClient:
                         usage.output_tokens = getattr(u, "output_tokens", 0) or 0
         if not blocks and time.time() - started > 0:
             # A stream that produced nothing is treated as a transport failure.
+            # 何も生成しなかったストリームは転送の失敗として扱う。
             raise ModelError("empty stream", retryable=True)
         msg = Message(role="assistant", content=blocks, usage=usage, stop_reason=stop_reason)
         yield DoneEvent(ModelResponse(message=msg, usage=usage, stop_reason=stop_reason, model=self.model))

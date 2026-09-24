@@ -17,6 +17,21 @@ Two ways to script it:
 Usage is synthesized from text length so token accounting has numbers to
 work with. Set `usage_per_call` to force a specific input size and drive
 compaction in tests.
+
+テスト、例、オフライン実行のための、台本どおりに答えるフェイクモデル。
+
+台本の書き方は 2 通りある。
+
+1. ターンのリスト。各ターンは文字列（プレーンテキストの返答）か、ブロックの
+   リスト（text と tool_use）である。フェイクモデルはそれを順に再生し、尽きたら
+   ずっと end_turn で "done" と答える。
+
+2. 呼び出し可能な `fn(request) -> turn`。ループが送った内容に反応しなければ
+   ならないテスト、たとえば答える前にツール結果を確かめる場合に使う。
+
+使用量はテキストの長さから合成されるので、トークン計算が扱う数値が揃う。
+`usage_per_call` を設定すると入力サイズを固定し、テストでコンパクションを
+起こせる。
 """
 
 from __future__ import annotations
@@ -55,6 +70,7 @@ class FakeModel:
         self.fail_next: Exception | None = None
 
     # ---- scripting helpers ------------------------------------------------
+    # ---- 台本づくりの補助 ----
     def _next_turn(self, request: ModelRequest) -> Turn:
         if callable(self._script):
             return self._script(request)
@@ -67,6 +83,7 @@ class FakeModel:
     def _turn_to_message(self, turn: Turn) -> tuple[Message, str]:
         if isinstance(turn, dict):
             # {"text": ..., "tools": [...], "stop_reason": ...}
+            # 辞書で渡すときの形である
             blocks: list[Any] = []
             if turn.get("text"):
                 blocks.append(TextBlock(turn["text"]))
@@ -80,6 +97,7 @@ class FakeModel:
         return Message(role="assistant", content=blocks), stop
 
     # ---- protocol ----------------------------------------------------------
+    # ---- プロトコル ----
     def stream(self, request: ModelRequest) -> Iterator[ModelEvent]:
         self.requests.append(request)
         if self.fail_next is not None:

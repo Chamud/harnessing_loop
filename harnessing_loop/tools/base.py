@@ -18,6 +18,22 @@ For small tools use the decorator:
     @tool("now", "Current date and time.", {"type": "object", "properties": {}}, read_only=True)
     def now(input, ctx):
         return ToolResult.ok(datetime.now().isoformat())
+
+ツールのプロトコル。
+
+ツールとは、名前、説明、入力の JSON スキーマ、いくつかの述語、そして `call` を
+持つクラスである。既定値は安全側に倒れる。自ら宣言するまで、ツールは読み取り専用
+でも並行実行安全でもない。
+
+`ToolContext` はツールが触ってよいものすべてである。ワークスペース、実行状態、
+サンドボックス、ファイル状態キャッシュ、イベントバス、レジストリ、そしてモデル
+クライアント。ツールはループを import しない。
+
+ツールはループに例外を投げない。モデルが読んで対処すべきものは、`call` が
+`ToolResult.error(...)` として返す。抜けてきた例外もパイプラインが捕まえてエラー
+結果に変えるが、エラーを設計したツールのほうがモデルに良い文面を渡せる。
+
+小さなツールには、上に示したデコレータを使う。
 """
 
 from __future__ import annotations
@@ -36,6 +52,7 @@ class ToolResult:
     is_error: bool = False
     data: Any = None
     evidence: dict[str, Any] = field(default_factory=dict)  # merged into RunState.evidence
+    # RunState.evidence にマージされる。
 
     @classmethod
     def ok(cls, content: str, data: Any = None, **evidence: Any) -> "ToolResult":
@@ -50,21 +67,36 @@ class ToolResult:
 class ToolContext:
     workspace: Path
     state: Any  # RunState
+    # RunState（実行状態）。
     config: Any  # RunConfig
+    # RunConfig（実行設定）。
     sandbox: Any = None  # Sandbox
+    # Sandbox（サンドボックス）。
     file_state: Any = None  # FileStateCache
+    # FileStateCache（ファイル状態キャッシュ）。
     events: Any = None  # EventBus
+    # EventBus（イベントバス）。
     registry: Any = None  # Registry
+    # Registry（レジストリ）。
     permissions: Any = None  # PermissionContext
+    # PermissionContext（権限コンテキスト）。
     hooks: Any = None  # HookRegistry
+    # HookRegistry（フックのレジストリ）。
     redactor: Any = None  # Redactor
+    # Redactor（秘匿化）。
     model: Any = None  # ModelClient, for subagents and side queries
+    # ModelClient。サブエージェントと副問い合わせのため。
     gates: Any = None  # progress.gates.Gates
+    # progress.gates.Gates（ゲート）。
     checkpoints: Any = None  # persistence.checkpoints.Checkpoints
+    # persistence.checkpoints.Checkpoints（チェックポイント）。
     deps: Any = None  # Deps
+    # Deps（注入される依存物）。
     tasks: dict[str, Any] = field(default_factory=dict)  # background tasks
+    # バックグラウンドタスク。
     extra: dict[str, Any] = field(default_factory=dict)
     depth: int = 0  # subagent nesting
+    # サブエージェントの入れ子の深さ。
 
     @property
     def harness_dir(self) -> Path:
@@ -73,7 +105,11 @@ class ToolContext:
         return d
 
     def resolve(self, path: str) -> Path:
-        """Resolve a user path against the workspace. No escape check here; see guards."""
+        """Resolve a user path against the workspace. No escape check here; see guards.
+
+        ユーザーの与えたパスをワークスペース基準で解決する。ここでは脱出の検査は
+        しない。ガードを見ること。
+        """
         p = Path(path).expanduser()
         if not p.is_absolute():
             p = self.workspace / p
@@ -92,14 +128,18 @@ class Tool:
     description: str = ""
     input_schema: dict[str, Any] = {"type": "object", "properties": {}}
     category: str = "other"  # read | edit | exec | plan | web | agent | meta | other
+    # 分類。read | edit | exec | plan | web | agent | meta | other のいずれか。
     read_only: bool = False
     concurrency_safe: bool = False
     destructive: bool = False
     max_result_chars: int | None = None  # None -> config default; 0 -> never persist
+    # None なら設定の既定値、0 ならディスクに退避しない。
     defer: bool = False  # only the name is sent until tool_search loads it
+    # tool_search が読み込むまで、名前だけが送られる。
     search_hint: str = ""
 
     # ---- predicates ----------------------------------------------------------
+    # ---- 述語 ----------------------------------------------------------------
     def is_read_only(self, input: dict[str, Any]) -> bool:
         return self.read_only
 
@@ -107,16 +147,26 @@ class Tool:
         return self.concurrency_safe
 
     def permission_subjects(self, input: dict[str, Any]) -> Iterable[str]:
-        """Strings a permission rule pattern is matched against."""
+        """Strings a permission rule pattern is matched against.
+
+        権限ルールのパターンと照合される文字列。
+        """
         return []
 
     def paths(self, input: dict[str, Any]) -> Iterable[str]:
-        """Filesystem paths this call touches, for guards and rules."""
+        """Filesystem paths this call touches, for guards and rules.
+
+        この呼び出しが触るファイルシステム上のパス。ガードとルールのために使う。
+        """
         return []
 
     # ---- lifecycle -------------------------------------------------------------
+    # ---- ライフサイクル --------------------------------------------------------
     def validate(self, input: dict[str, Any], ctx: ToolContext) -> str | None:
-        """Return an error message, or None when the input is acceptable."""
+        """Return an error message, or None when the input is acceptable.
+
+        エラーメッセージを返す。入力が受け入れられるなら None を返す。
+        """
         return None
 
     def check_permissions(self, input: dict[str, Any], ctx: Any) -> Decision:
@@ -126,6 +176,7 @@ class Tool:
         raise NotImplementedError
 
     # ---- wire ----------------------------------------------------------------------
+    # ---- 送信形式 ------------------------------------------------------------------
     def schema(self) -> dict[str, Any]:
         return {"name": self.name, "description": self.description, "input_schema": self.input_schema}
 
@@ -145,7 +196,10 @@ def tool(
     subjects: Callable[[dict[str, Any]], Iterable[str]] | None = None,
     paths: Callable[[dict[str, Any]], Iterable[str]] | None = None,
 ) -> Callable[[Callable[[dict[str, Any], ToolContext], ToolResult | str]], Tool]:
-    """Turn a function into a Tool instance."""
+    """Turn a function into a Tool instance.
+
+    関数を Tool のインスタンスに変える。
+    """
 
     def deco(fn: Callable[[dict[str, Any], ToolContext], ToolResult | str]) -> Tool:
         class FnTool(Tool):
@@ -175,6 +229,7 @@ def tool(
 
 
 # ---- minimal JSON schema validation --------------------------------------------
+# ---- 最小限の JSON スキーマ検証 ------------------------------------------------
 
 _TYPES = {
     "object": dict,
@@ -188,7 +243,10 @@ _TYPES = {
 
 
 def validate_schema(schema: dict[str, Any], value: Any, path: str = "input") -> str | None:
-    """Check `value` against a small JSON schema subset. Return an error or None."""
+    """Check `value` against a small JSON schema subset. Return an error or None.
+
+    JSON スキーマの小さな部分集合に対して `value` を検査する。エラーか None を返す。
+    """
     t = schema.get("type")
     if t:
         types = t if isinstance(t, list) else [t]

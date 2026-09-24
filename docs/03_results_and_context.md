@@ -1,5 +1,7 @@
 # Tool results and token accounting
 
+[日本語](ja/03_results_and_context.md)
+
 This doc covers how a tool result is bounded, redacted, and counted before the model sees it, and how the harness tracks what the model has read.
 
 ## Size control

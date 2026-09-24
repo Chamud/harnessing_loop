@@ -4,6 +4,12 @@ The last model response carries exact usage for everything up to and
 including that response. Messages added after it are estimated from their
 size and padded by a third, so estimates err on the side of compacting
 early rather than hitting the wall.
+
+トークナイザを使わないトークン計算。
+
+直前のモデル応答が、その応答までのすべてについて正確な使用量を持つ。そのあとに追加された
+メッセージはサイズから推定し、3分の1だけ上乗せする。これにより推定は、上限に突き当たる
+のではなく早めにコンパクションする側へ寄る。
 """
 
 from __future__ import annotations
@@ -38,7 +44,10 @@ def message_tokens(m: Message) -> int:
 
 
 def conversation_tokens(messages: list[Message], system_tokens: int = 0, tool_tokens: int = 0) -> int:
-    """Best estimate of the next request's input size."""
+    """Best estimate of the next request's input size.
+
+    次のリクエストの入力サイズの最良推定。
+    """
     last_idx = -1
     for i in range(len(messages) - 1, -1, -1):
         if messages[i].role == "assistant" and messages[i].usage is not None:

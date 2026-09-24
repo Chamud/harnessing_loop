@@ -4,6 +4,8 @@
 
 The core of an agent: a VLM, a loop, tools, a sandbox, and gates. Use it as it is, or build agentic applications on top of it.
 
+> 🌐 **日本語**: [README.ja.md](README.ja.md) · 📚 [docs/ja/](docs/ja/README.md) · 📖 [用語集](docs/ja/GLOSSARY.md)
+
 ## What it is
 
 harnessing_loop is the core of a capable agent. It uses one VLM and a looping mechanism with a set of tools, and it checks its own work. The model proposes, tools execute, results feed back, and gates decide when the job is done.
@@ -141,6 +143,7 @@ examples/          chat_cli.py, coder_cli.py, app_demo/
 evals/             tasks and a runner that scores a profile
 tests/             108 tests, fake model only
 docs/              one document per layer, in reading order
+docs/ja/           the Japanese translation of docs/, plus the glossary
 ```
 
 ## Read the docs in order
@@ -157,6 +160,8 @@ docs/              one document per layer, in reading order
 | 8 | [docs/08_progress.md](docs/08_progress.md) | phases, gates, evidence, stuck detection |
 | 9 | [docs/09_scaling_tools.md](docs/09_scaling_tools.md) | deferred tools, subagents, background tasks, model-defined tools, skills |
 | 10 | [docs/10_application.md](docs/10_application.md) | jobs, workers, event streaming, making it yours |
+
+Each page links to its Japanese translation at the top. The full set is indexed at [docs/ja/README.md](docs/ja/README.md); translated terms follow [docs/ja/GLOSSARY.md](docs/ja/GLOSSARY.md).
 
 ## Profiles
 

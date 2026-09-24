@@ -6,6 +6,14 @@
 - dangerous prefixes: an allow rule such as `shell(python *)` allows
   arbitrary code and is therefore stripped when a profile asks for an
   automatic mode.
+
+bypass を含むすべての権限モードで有効な検査。
+
+- 保護パス: エージェントは自分の設定、フック定義、権限ルール、ワークスペースの
+  バージョン管理の内部を決して編集してはならない。それらを編集させることが、
+  エージェントが自分の権限を広げる手口になる。
+- 危険な接頭辞: `shell(python *)` のような allow ルールは任意のコードを許して
+  しまうため、プロファイルが自動モードを求めたときには取り除かれる。
 """
 
 from __future__ import annotations
@@ -16,6 +24,7 @@ from .rules import Rule
 
 PROTECTED_RELATIVE = (
     ".harness/",  # runtime config, hooks, rules
+    # .harness/ はランタイムの設定、フック、ルールを保持する
     ".git/",
     ".hg/",
     ".svn/",
@@ -72,7 +81,9 @@ def _rel(path: Path, root: Path) -> str | None:
 
 
 def is_protected_path(path: str | Path, workspace: Path) -> str | None:
-    """Return a reason if `path` must not be written, else None."""
+    """Return a reason if `path` must not be written, else None.
+    `path` に書き込んではならない場合はその理由を返し、そうでなければ None を返す。
+    """
     p = Path(path)
     rel = _rel(p, workspace)
     if rel is not None:
@@ -93,7 +104,9 @@ def is_inside(path: str | Path, root: Path) -> bool:
 
 
 def rule_is_dangerous(rule: Rule) -> bool:
-    """True if an allow rule effectively grants arbitrary code execution."""
+    """True if an allow rule effectively grants arbitrary code execution.
+    allow ルールが実質的に任意コードの実行を許してしまう場合に True。
+    """
     if rule.behavior != "allow" or rule.pattern is None:
         return False
     pat = rule.pattern.strip().lower()

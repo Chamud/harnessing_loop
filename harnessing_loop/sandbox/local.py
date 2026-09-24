@@ -12,6 +12,22 @@ What it cannot guarantee:
 
 So this backend is for trusted inputs on your own machine. The startup
 check refuses it for exec tools unless `allow_unsafe_local` is set.
+
+ローカルのサブプロセスによるバックエンド。
+
+保証すること:
+- 環境は許可リストから組み立てられるため、ハーネスのプロセスにある認証情報は子
+  プロセスに届かない
+- 作業ディレクトリはワークスペースの内側にある
+- タイムアウトはプロセスツリーを終了させる
+
+保証できないこと:
+- ワークスペースの外の読み取り。子プロセスは同じ OS ユーザで動く
+- ネットワーク。ここにパケットフィルタはない
+
+したがってこのバックエンドは、自分のマシンで信頼できる入力を扱うためのものである。
+起動時の検査は、`allow_unsafe_local` が設定されていない限り exec ツールでの利用を
+拒否する。
 """
 
 from __future__ import annotations
@@ -34,6 +50,7 @@ class LocalSandbox:
         self.policy = policy or SandboxPolicy()
 
     def isolates_secrets(self) -> bool:
+        # 環境変数の除去は行われるが、ファイルシステムは隔離されない
         return False  # env is scrubbed, but the filesystem is not isolated
 
     def _cwd(self, cwd: Path | None) -> Path:
@@ -57,6 +74,8 @@ class LocalSandbox:
         if sys.platform == "win32":
             # The command line goes to cmd.exe unchanged: it keeps the exit code of the
             # last program and understands && and ||, close to sh semantics.
+            # コマンドラインはそのまま cmd.exe に渡る。最後のプログラムの終了コードを
+            # 保ち、&& と || を解釈するため、sh の意味づけに近い。
             return self._exec(command, shell=True, cwd=cwd, timeout=timeout)
         return self._exec(["/bin/sh", "-c", command], shell=False, cwd=cwd, timeout=timeout)
 
@@ -64,7 +83,10 @@ class LocalSandbox:
         return self._exec([sys.executable, "-I", "-c", code], shell=False, cwd=cwd, timeout=timeout, stdin=stdin)
 
     def path_inside(self, rel: str) -> str:
-        """Host path for a workspace-relative file, as the sandboxed program sees it."""
+        """Host path for a workspace-relative file, as the sandboxed program sees it.
+        ワークスペース相対のファイルのホスト側パス。サンドボックス内のプログラムが
+        見る形。
+        """
         return str(self.workspace / rel)
 
     def _exec(self, argv: list[str] | str, *, shell: bool, cwd: Path | None, timeout: float | None, stdin: str | None = None) -> SandboxResult:

@@ -9,6 +9,17 @@ Per message: if all results in one tool-result message together exceed the
 message budget, the largest ones are persisted until the sum fits.
 
 Empty results get a marker. Some models react badly to an empty block.
+
+ツール結果のサイズ制御。
+
+呼び出しごと: 結果がそのツールの上限（設定の上限で抑えられる）を超えた場合、全文を
+`.harness/tool-results/<id>.txt` に書き出し、モデルは短いプレビューとパスを受け取る。
+もっと必要なら、モデルは `read_file` でそのファイルを読める。
+
+メッセージごと: 1つのツール結果メッセージに入る結果の合計がメッセージの予算を超えた
+場合、合計が収まるまで大きいものから順にディスクへ退避する。
+
+空の結果には目印を付ける。空のブロックに良くない反応をするモデルがある。
 """
 
 from __future__ import annotations
@@ -31,6 +42,7 @@ def persist_dir(workspace: Path) -> Path:
 def persist(workspace: Path, call_id: str, text: str) -> Path:
     path = persist_dir(workspace) / f"{call_id}.txt"
     if not path.exists():  # a replay must not rewrite
+        # 再生時に書き直してはならない。
         path.write_text(text, encoding="utf-8")
     return path
 
@@ -53,6 +65,7 @@ def cap_for(tool: Any, config: Any) -> int:
         return default
     if declared == 0:
         return 0  # never persist (the tool bounds itself)
+        # ディスクに退避しない（ツール自身が大きさを抑える）。
     return min(declared, default)
 
 

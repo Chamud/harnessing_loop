@@ -2,6 +2,11 @@
 
 `finish` is the gate. It refuses until the gates in the profile pass, and
 its refusal text tells the model exactly what is missing.
+
+計画ツール。モデル自身の記録であり、その写しがディスクにも残る。
+
+`finish` がゲートである。プロファイルに書かれたゲートが通るまで拒否し、その拒否の
+文面が、何が足りないかをモデルに正確に伝える。
 """
 
 from __future__ import annotations
@@ -39,6 +44,7 @@ class TodoWrite(Tool):
     }
     category = "plan"
     read_only = True  # touches only harness state
+    # ハーネスの状態しか触らない。
     concurrency_safe = False
 
     def call(self, input: dict[str, Any], ctx: ToolContext) -> ToolResult:

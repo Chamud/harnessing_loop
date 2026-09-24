@@ -5,6 +5,15 @@ never execute anything they fetch.
 - private and link-local addresses are refused, so a fetched page cannot be
   used to reach internal services or cloud metadata endpoints
 - HTML is reduced to text and capped
+
+ウェブツール。ハーネスのプロセス内で動き、サンドボックスでは動かない。取得した
+ものを実行することは決してない。
+
+- ドメインの許可リストはプロファイルから取る（`web.allowed_domains`、どれでも
+  許すなら "*"）
+- プライベートアドレスとリンクローカルアドレスは拒否する。取得したページを使って
+  内部サービスやクラウドのメタデータエンドポイントに到達できないようにするため
+- HTML はテキストに落とし、上限で切る
 """
 
 from __future__ import annotations

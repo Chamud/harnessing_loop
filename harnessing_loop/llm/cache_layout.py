@@ -15,6 +15,22 @@ Rules that keep the cache warm:
 - the static system text never changes during a run
 - anything that changes every turn (date, git status, reminders) goes in the
   dynamic block or in a user message, never in the static block
+
+プロンプトキャッシュの配置。
+
+プロバイダはリクエストの先頭側をキャッシュする。前に置いた安定したバイト列は
+毎ターン安く済む。配置は上の図のとおりである。
+
+キャッシュマーカーの位置。
+- 最後のツールスキーマに 1 つ
+- 静的なシステムブロックに 1 つ
+- 最後のメッセージに 1 つ
+
+キャッシュプレフィックスを温めたままに保つ規則。
+- ツールスキーマは名前順に並べ、実行の途中で並び替えない
+- 静的なシステムテキストは 1 回の実行中に変わらない
+- 毎ターン変わるもの（日付、git の状態、リマインダー）は動的ブロックかユーザー
+  メッセージに置き、静的ブロックには入れない
 """
 
 from __future__ import annotations
@@ -56,6 +72,7 @@ def messages_with_cache(messages: list[Message], ttl: str | None = None) -> list
         mark["ttl"] = ttl
     last = api[-1]
     # Put the marker on the last non-thinking block of the last message.
+    # 最後のメッセージのうち、thinking でない最後のブロックにマーカーを置く。
     for block in reversed(last["content"]):
         if block.get("type") not in ("thinking", "redacted_thinking"):
             block["cache_control"] = mark

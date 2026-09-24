@@ -13,6 +13,22 @@ One iteration:
 
 The loop-back signal is the presence of a tool_use block, never the
 provider's stop reason. Every exit is a `Terminal` with a reason string.
+
+ループ本体。
+
+1回の反復は次のとおりである。
+
+    control file      取り消し / 一時停止 / 運用者からのメッセージ
+    context           マイクロコンパクション、上限が近ければ完全なコンパクション
+    model call        ストリーミング。再試行はクライアント内部で行う
+    output limit      切り詰められた応答から、数回まで回復する
+    no tool calls?    stop フック、完了要求の確認、そのあと終了
+    tool calls        ディスパッチ、サイズ予算、スタック検査、リマインダ
+    progress          フェーズの推定、証跡の記録
+    limits            最大ターン数、コスト予算
+
+ループが次の周に戻る合図は `tool_use` ブロックの存在であり、提供元が返す停止理由
+ではない。すべての出口は理由文字列を持つ `Terminal` である。
 """
 
 from __future__ import annotations
@@ -94,9 +110,13 @@ class Loop:
             runtime.model.on_retry = self._on_retry
 
     # ---- public --------------------------------------------------------------------
+    # ---- 公開 ----------------------------------------------------------------------
     @classmethod
     def resume(cls, runtime: Runtime) -> "Loop":
-        """Continue a run from its transcript and saved state."""
+        """Continue a run from its transcript and saved state.
+
+        トランスクリプトと保存された状態から実行を継続する。
+        """
         if runtime.transcript is None:
             raise ValueError("resume needs a runtime with a transcript")
         messages = runtime.transcript.load_live()
@@ -143,6 +163,7 @@ class Loop:
             return self._end(Terminal("aborted", self.state.turn, str(exc)))
 
     # ---- one iteration ---------------------------------------------------------------
+    # ---- 1回の反復 -------------------------------------------------------------------
     def _iteration(self) -> Continue | Terminal:
         st = self.state
         st.turn += 1
@@ -152,14 +173,17 @@ class Loop:
             self.rt.checkpoints.snapshot(st.turn)
 
         # control file
+        # 制御ファイル
         inbox = self._control()
 
         # context management
+        # コンテキスト管理
         blocked = self._manage_context()
         if blocked is not None:
             return blocked
 
         # model
+        # モデル呼び出し
         try:
             response = self._call_model()
         except PromptTooLong:
@@ -181,6 +205,7 @@ class Loop:
         tool_uses = msg.tool_uses()
 
         # truncated reply without tool calls: ask for a continuation
+        # ツール呼び出しのない切り詰められた応答: 続きを書くよう求める。
         if response.stop_reason == "max_tokens" and not tool_uses:
             if st.output_recovery_attempts < self.config.max_output_recovery_attempts:
                 st.output_recovery_attempts += 1
@@ -193,6 +218,7 @@ class Loop:
             return self._on_model_stop(msg)
 
         # tools
+        # ツール
         control = read_control(self.rt.workspace)
         results = run_tool_calls(tool_uses, self.ctx, should_abort=lambda: read_control(self.rt.workspace).get("cancel", False))
         results = apply_message_budget(results, workspace=self.rt.workspace, config=self.config)
@@ -201,6 +227,7 @@ class Loop:
             raise Aborted("cancelled during tool execution")
 
         # stuck detection, reminders
+        # スタック検出とリマインダ
         nudge, stop_reason = self.stuck.observe(tool_uses, st, self.cost.cost_usd)
         extra_blocks: list[TextBlock] = []
         reminder = build_attachments(self.rt, st, self.attach, tasks=self.tasks, inbox=inbox)
@@ -212,6 +239,7 @@ class Loop:
         self._append(Message(role="user", content=[*results, *extra_blocks]))
 
         # progress
+        # 進捗
         if self.rt.gates is not None and self.rt.gates.phases:
             moved = infer_phase(st, self.rt.gates.phases, self.rt.extra.get("phase_evidence", {}))
             if moved:
@@ -219,6 +247,7 @@ class Loop:
         _save_state(st, self.rt.workspace)
 
         # exits
+        # 出口
         if st.evidence.get("finished"):
             return Terminal("completed", st.turn, "finish accepted", final_text=str(st.evidence.get("final_summary", "")))
         if st.evidence.get("stop_requested"):
@@ -231,6 +260,7 @@ class Loop:
         return Continue("tool_use")
 
     # ---- pieces ------------------------------------------------------------------------
+    # ---- 部品 --------------------------------------------------------------------------
     def _on_model_stop(self, msg: Message) -> Continue | Terminal:
         st = self.state
         final_text = msg.text()
@@ -273,6 +303,7 @@ class Loop:
         inbox = list(ctrl.get("inbox") or [])
         if inbox and len(inbox) > self.attach.inbox_seen:
             pass  # consumed by build_attachments
+            # build_attachments が消費する。
         return inbox
 
     def _system(self) -> list[dict[str, Any]]:
@@ -380,6 +411,7 @@ class Loop:
 
 
 # ---- state persistence ---------------------------------------------------------------
+# ---- 状態の永続化 ---------------------------------------------------------------------
 
 STATE_KEYS = ("turn", "phase", "phases_seen", "evidence", "files_written", "files_read", "todos", "notes", "compactions", "dynamic_tools")
 

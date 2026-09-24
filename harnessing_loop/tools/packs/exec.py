@@ -2,6 +2,11 @@
 
 The permission subject of a shell call is the list of its subcommands, so
 a rule such as `shell(git *)` sees `git push` inside `ls && git push`.
+
+実行ツール。ここにあるものはすべてサンドボックスを通る。
+
+shell 呼び出しの権限判定の対象は、そのサブコマンドの一覧である。したがって
+`shell(git *)` のようなルールは、`ls && git push` の中の `git push` を見る。
 """
 
 from __future__ import annotations

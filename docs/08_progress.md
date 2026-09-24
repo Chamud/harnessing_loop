@@ -1,5 +1,7 @@
 # Progress: phases, gates, evidence, stuck detection
 
+[日本語](ja/08_progress.md)
+
 This doc covers how the harness decides whether a run is moving forward: evidence recorded by tools, forward-only phases with entry gates, the `finish` gate, phase inference, and stuck detection.
 
 ## The principle

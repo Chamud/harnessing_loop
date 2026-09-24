@@ -2,6 +2,11 @@
 
 A profile with exec tools on the local backend is a development setup, not
 a deployment. It only starts when the run config says `allow_unsafe_local`.
+
+最初のターンより前に危険な組み合わせを拒否する。
+
+local バックエンドで exec ツールを使うプロファイルは開発用の構成であり、配備用の
+構成ではない。実行設定が `allow_unsafe_local` を指定したときにだけ起動する。
 """
 
 from __future__ import annotations
@@ -26,7 +31,9 @@ def make_sandbox(backend: str, workspace: Path, policy: SandboxPolicy | None = N
 
 
 def check_sandbox(sandbox, *, has_exec_tools: bool, allow_unsafe_local: bool) -> list[str]:
-    """Return warnings. Raise ConfigError for combinations that must not start."""
+    """Return warnings. Raise ConfigError for combinations that must not start.
+    警告を返す。起動してはならない組み合わせには ConfigError を投げる。
+    """
     warnings: list[str] = []
     if not has_exec_tools:
         return warnings

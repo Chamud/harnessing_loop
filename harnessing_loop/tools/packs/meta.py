@@ -6,6 +6,15 @@ define_tool   lets the model write a new tool. The code is stored under
               `tools/` in the workspace and always runs through the sandbox,
               so a model-made tool can do exactly what run_python can do and
               nothing more. Definitions persist per workspace.
+
+メタツール。モデルが自分のツール集合そのものを扱う。
+
+`tool_search` は遅延ツールのスキーマを必要なときに読み込む。これによりプロファイルは、
+毎ターン全部の代金を払わずに多くのツールを抱えられる。
+`define_tool` はモデルに新しいツールを書かせる。コードはワークスペースの `tools/` の
+下に保存され、常にサンドボックスを通して動く。したがってモデルが作ったツールにできる
+ことは run_python にできることと正確に同じで、それ以上はない。定義はワークスペース
+ごとに残る。
 """
 
 from __future__ import annotations
@@ -69,7 +78,11 @@ def _schemas_text(reg: Any, names: list[str]) -> str:
 
 
 class DynamicTool(Tool):
-    """A tool whose body is a Python file in the workspace, run in the sandbox."""
+    """A tool whose body is a Python file in the workspace, run in the sandbox.
+
+    本体がワークスペース内の Python ファイルであり、サンドボックスで実行される
+    ツール。
+    """
 
     category = "exec"
 
@@ -106,7 +119,10 @@ def dynamic_tools_dir(workspace: Path) -> Path:
 
 
 def load_dynamic_tools(registry: Any, workspace: Path) -> list[str]:
-    """Register tools defined in earlier runs of this workspace."""
+    """Register tools defined in earlier runs of this workspace.
+
+    このワークスペースの過去の実行で定義されたツールを登録する。
+    """
     loaded = []
     d = workspace / "tools"
     if not d.is_dir():

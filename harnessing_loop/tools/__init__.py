@@ -1,4 +1,7 @@
-"""Tools: the protocol, the registry, the dispatcher and the call pipeline."""
+"""Tools: the protocol, the registry, the dispatcher and the call pipeline.
+
+ツール。プロトコル、レジストリ、ディスパッチャ、そして呼び出しパイプライン。
+"""
 
 from .base import Tool, ToolContext, ToolResult, tool, validate_schema
 from .registry import Registry

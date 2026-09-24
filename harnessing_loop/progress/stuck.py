@@ -7,6 +7,16 @@ Three signals, each cheap:
 
 The first two produce a nudge (a meta user message) before they produce a
 stop, because the model can usually recover once told.
+
+スタック検出。
+
+兆候は3つあり、どれも安価である。
+- 同じ入力の同じツール呼び出しが `repeat_limit` 回続く
+- 新しい証跡のないターンが `no_evidence_turns` 回続く
+- コストが設定された予算を超える
+
+最初の2つは、停止させる前にまず促し（メタのユーザメッセージ）を出す。言われればモデルは
+たいてい立て直せるからである。
 """
 
 from __future__ import annotations
@@ -34,7 +44,10 @@ class StuckDetector:
     history: list[str] = field(default_factory=list)
 
     def observe(self, calls: list[ToolUseBlock], state: Any, cost_usd: float) -> tuple[str | None, str | None]:
-        """Return (nudge_text, stop_reason). Either may be None."""
+        """Return (nudge_text, stop_reason). Either may be None.
+
+        (nudge_text, stop_reason) を返す。どちらも None になりうる。
+        """
         if self.max_cost_usd is not None and cost_usd > self.max_cost_usd:
             return None, f"cost {cost_usd:.2f} USD exceeded the budget of {self.max_cost_usd:.2f} USD"
 

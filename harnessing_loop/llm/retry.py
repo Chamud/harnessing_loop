@@ -7,6 +7,17 @@ Policy:
 - retry on overload, rate limit, 5xx, connection errors, and mid-stream
   errors; never on invalid requests
 - a stream that stays silent for `idle_timeout` seconds is abandoned
+
+モデル呼び出しの再試行とバックオフ。
+
+再試行方針。
+- `base_delay` から始まる指数バックオフ。待ち時間を倍々にし、`max_delay` で止める
+- 最大 25 パーセントのゆらぎを加え、並行するワーカーが足並みを揃えて再試行しない
+  ようにする
+- プロバイダから渡された `retry-after` の値は、計算した待ち時間より優先される
+- 過負荷、レート制限、5xx、接続エラー、ストリーム途中のエラーで再試行する。
+  不正なリクエストでは決して再試行しない
+- `idle_timeout` 秒のあいだ無音のままのストリームは打ち切る
 """
 
 from __future__ import annotations
@@ -40,7 +51,10 @@ RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504, 529}
 
 
 def classify(exc: BaseException) -> tuple[bool, int | None, float | None]:
-    """(retryable, status, retry_after) for an exception from any provider."""
+    """(retryable, status, retry_after) for an exception from any provider.
+
+    どのプロバイダから来た例外についても (retryable, status, retry_after) を返す。
+    """
     status = getattr(exc, "status_code", None) or getattr(exc, "status", None)
     retry_after = None
     headers = getattr(getattr(exc, "response", None), "headers", None)
@@ -78,6 +92,7 @@ def with_retry(
         try:
             return fn()
         except BaseException as exc:  # noqa: BLE001 - classified below
+            # 分類はこの下で行う
             retryable, status, retry_after = classify(exc)
             attempt += 1
             if not retryable or attempt > policy.max_retries:
@@ -97,6 +112,11 @@ def with_idle_timeout(events: Iterator[T], idle_timeout: float, now: Callable[[]
 
     Providers stream in their own thread, so a simple timestamp check between
     yields is enough to detect a hung connection in practice.
+
+    イベントの間隔が `idle_timeout` を超えたときに ModelError を送出する。
+
+    プロバイダは自分のスレッドでストリームするので、yield の間で単純に時刻を
+    比べるだけで、実際には固まった接続を検知できる。
     """
     last = now()
     for ev in events:

@@ -5,6 +5,14 @@ Two jobs:
   model reasons about relative paths and the transcript stays portable
 - mask secret-shaped values: cloud access keys, bearer tokens, private key
   blocks, and KEY=value pairs whose key looks like a secret
+
+ツール出力をモデルが見る前に秘匿化する。
+
+役割は2つある。
+- ワークスペースとホームの絶対パスを短いプレースホルダに置き換え、モデルが相対
+  パスで考えるようにし、トランスクリプトの可搬性を保つ
+- シークレットらしい値を伏せる。クラウドのアクセスキー、bearer トークン、秘密鍵
+  のブロック、キー名がシークレットに見える KEY=value の対
 """
 
 from __future__ import annotations

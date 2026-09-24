@@ -9,6 +9,12 @@ application adds its own in the profile module.
         entry={"verify": [file_exists("out/result.json")]},
         finish=[fresh_file("verify/verify.json", newer_than="out/*"), json_field("verify/verify.json", "ok", True)],
     )
+
+ゲート。フェーズへの入場、または完了が満たさなければならない要件である。
+
+要件は `(state, ctx) -> str | None` という呼び出し可能オブジェクトである。問題の説明か
+None を返す。組み込みのものが典型的な場合を覆う。アプリケーションは独自の要件を
+プロファイルのモジュールで追加する。組み立て方は上の例のとおりである。
 """
 
 from __future__ import annotations
@@ -47,6 +53,7 @@ def _run(reqs: list[Requirement], state: Any, ctx: Any) -> list[str]:
         try:
             msg = r(state, ctx)
         except Exception as exc:  # a broken gate blocks, it never lets work through
+            # 壊れたゲートは遮断する。作業を通すことは決してない
             msg = f"gate {getattr(r, '__name__', 'check')} crashed: {exc}"
         if msg:
             out.append(msg)
@@ -54,6 +61,7 @@ def _run(reqs: list[Requirement], state: Any, ctx: Any) -> list[str]:
 
 
 # ---- built-in requirements -------------------------------------------------------
+# ---- 組み込みの要件 -------------------------------------------------------
 
 def evidence(key: str, message: str | None = None) -> Requirement:
     def check(state: Any, ctx: Any) -> str | None:
@@ -77,7 +85,11 @@ def file_exists(rel: str, message: str | None = None) -> Requirement:
 
 
 def fresh_file(rel: str, newer_than: str, message: str | None = None) -> Requirement:
-    """`rel` must exist and be newer than every file matching `newer_than` (glob)."""
+    """`rel` must exist and be newer than every file matching `newer_than` (glob).
+
+    `rel` は存在し、かつ `newer_than`（glob）に一致するすべてのファイルより新しくなければ
+    ならない。
+    """
 
     def check(state: Any, ctx: Any) -> str | None:
         ws = Path(state.workspace)

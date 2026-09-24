@@ -1,5 +1,7 @@
 # Permissions and hooks
 
+[日本語](ja/05_permissions_and_hooks.md)
+
 This doc covers how a tool call is allowed, denied, or sent to a human, and how hooks steer the run without widening its permissions.
 
 ## Modes

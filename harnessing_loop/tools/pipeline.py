@@ -4,6 +4,13 @@
            -> post hooks -> redact -> size control -> evidence
 
 Every exit from this pipeline is a ToolResultBlock. Nothing raises.
+
+1回のツール呼び出しを、最初から最後まで通す。
+
+上の流れは、検索 -> スキーマ検査 -> 検証 -> ツール実行前フック -> 権限判定 ->
+呼び出し -> ツール実行後フック -> 秘匿化 -> サイズ制御 -> 証跡 の順である。
+
+このパイプラインの出口はすべて ToolResultBlock である。例外は投げない。
 """
 
 from __future__ import annotations
@@ -53,6 +60,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
         return block
 
     # 1. lookup
+    # 1. 検索
     tool = registry.get(call.name) if registry else None
     if tool is None:
         return finish(_err(call.id, f"No such tool: {call.name}. Available: {', '.join(registry.names()) if registry else 'none'}"))
@@ -60,6 +68,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
         return finish(_err(call.id, f"Tool {call.name} is not loaded. Call tool_search with query \"select:{call.name}\" first, then retry."))
 
     # 2. schema
+    # 2. スキーマ検査
     input: dict[str, Any] = dict(call.input or {})
     if "_raw" in input and len(input) == 1:
         return finish(_err(call.id, "Tool input was not valid JSON."), tool=tool)
@@ -68,6 +77,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
         return finish(_err(call.id, f"Invalid input for {call.name}: {schema_err}"), tool=tool)
 
     # 3. tool validation
+    # 3. ツール自身の検証
     try:
         v = tool.validate(input, ctx)
     except Exception as exc:  # noqa: BLE001
@@ -76,6 +86,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
         return finish(_err(call.id, v), tool=tool)
 
     # 4. pre hooks
+    # 4. ツール実行前フック
     extra_context: list[str] = []
     hook_decision: str | None = None
     if ctx.hooks and ctx.hooks.has(Events.PRE_TOOL_USE):
@@ -99,6 +110,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
             return finish(_err(call.id, f"Blocked by hook: {merged.reason or 'no reason given'}"), tool=tool)
 
     # 5. permission
+    # 5. 権限判定
     decision = decide(tool, input, ctx.permissions, hook_allow=hook_decision == "allow") if ctx.permissions else Decision.allow("no permission context")
     if decision.behavior != "allow":
         if bus:
@@ -108,6 +120,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
         input = dict(decision.updated_input)
 
     # 6. call
+    # 6. 呼び出し
     try:
         result = tool.call(input, ctx)
         if not isinstance(result, ToolResult):
@@ -117,6 +130,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
         result = ToolResult.error(f"{call.name} crashed: {exc}\n{tb}")
 
     # 7. post hooks
+    # 7. ツール実行後フック
     if ctx.hooks:
         event = Events.POST_TOOL_FAILURE if result.is_error else Events.POST_TOOL_USE
         if ctx.hooks.has(event):
@@ -127,6 +141,7 @@ def run_tool_call(call: ToolUseBlock, ctx: ToolContext) -> ToolResultBlock:
                 ctx.state.evidence["stop_requested"] = merged.reason or "stopped by hook"
 
     # 8. evidence
+    # 8. 証跡
     if result.evidence and not result.is_error:
         for k, val in result.evidence.items():
             ctx.state.add_evidence(k, val)

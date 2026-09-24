@@ -2,6 +2,11 @@
 
 Everything a UI, a log, or a test needs to observe the run comes through
 `EventBus`. The loop never prints. Subscribers decide what to show.
+
+ループが発行する型付きイベント。
+
+UI、ログ、試験が実行を観測するために必要なものは、すべて `EventBus` を通る。
+ループは印字しない。何を表示するかは購読側が決める。
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ class Event:
 
 
 # Event types the loop emits. Kept as constants so subscribers can filter.
+# ループが発行するイベント種別。購読側が絞り込めるよう定数として保持する。
 RUN_START = "run_start"
 RUN_END = "run_end"
 TURN_START = "turn_start"
@@ -50,7 +56,10 @@ Subscriber = Callable[[Event], None]
 
 
 class EventBus:
-    """Fan-out with optional JSONL persistence. Thread-safe."""
+    """Fan-out with optional JSONL persistence. Thread-safe.
+
+    JSONL への永続化を任意で伴う配信。スレッド安全である。
+    """
 
     def __init__(self, log_path: Path | None = None):
         self._subs: list[Subscriber] = []
@@ -82,12 +91,16 @@ class EventBus:
             try:
                 s(ev)
             except Exception:  # a broken subscriber must not stop the run
+                # 壊れた購読側が実行を止めてはならない。
                 pass
         return ev
 
 
 def print_subscriber(ev: Event) -> None:
-    """A minimal terminal renderer for examples."""
+    """A minimal terminal renderer for examples.
+
+    例示用の最小の端末描画。
+    """
     t = ev.type
     d = ev.data
     if t == TEXT_DELTA:

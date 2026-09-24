@@ -4,6 +4,12 @@
 `rewind(turn)` restores every file to how it was at the start of that
 turn. The index is a JSON file; backups are plain copies with a sequence
 number, bounded to the most recent `max_entries`.
+
+ファイルのチェックポイント。エージェントが変更する前のすべてのファイルの写しである。
+
+`backup()` は書き込みツールと編集ツールから呼ばれる。`snapshot()` はターンに印をつける。
+`rewind(turn)` はすべてのファイルを、そのターンの開始時点の状態に戻す。索引は JSON ファイル、
+バックアップは連番を付けた単純な写しで、最新の `max_entries` 件に限られる。
 """
 
 from __future__ import annotations
@@ -61,7 +67,10 @@ class Checkpoints:
         return rec.get("backup")
 
     def rewind(self, turn: int) -> list[str]:
-        """Restore files to their state at the start of `turn`. Returns restored paths."""
+        """Restore files to their state at the start of `turn`. Returns restored paths.
+
+        ファイルを `turn` の開始時点の状態に戻す。戻したパスを返す。
+        """
         restored: list[str] = []
         earliest: dict[str, dict[str, Any]] = {}
         for rec in self._index:

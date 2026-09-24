@@ -3,6 +3,12 @@
 Same request and event contract as the direct client. Uses the provider's
 SDK with the cloud transport, so credentials come from the standard
 environment variables or the shared credentials file of that cloud.
+
+クラウド上で動くクライアント。
+
+リクエストとイベントの契約は直接クライアントと同じである。プロバイダの SDK を
+クラウド向けの転送で使うため、認証情報はそのクラウドの標準的な環境変数か、共有の
+認証情報ファイルから渡される。
 """
 
 from __future__ import annotations

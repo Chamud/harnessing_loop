@@ -10,6 +10,18 @@ Instruction files are named AGENT.md. They are read from the user's home
 config dir, then each directory from the filesystem root down to the
 workspace, so closer files come later and carry more weight. `@path`
 lines include other files, up to five levels deep.
+
+システムプロンプトの組み立て。
+
+静的な部分（ターンをまたいでキャッシュされ、毎回まったく同じバイト列）は、プロファイルの
+プロンプト、指示ファイル、スキルの一覧、遅延ツールのスタブからなる。
+
+動的な部分（小さく、実行ごと・ターンごとに変わる）は、日付、ワークスペース名、
+サンドボックスのバックエンド、フェーズである。
+
+指示ファイルの名前は AGENT.md。ユーザのホーム設定ディレクトリ、次にファイルシステムの
+ルートからワークスペースまでの各ディレクトリの順に読む。近いファイルが後に来て、より強い
+重みを持つ。`@path` の行は他のファイルを取り込み、深さは5段までである。
 """
 
 from __future__ import annotations

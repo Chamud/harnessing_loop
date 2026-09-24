@@ -9,6 +9,15 @@ Contract (JSON over HTTPS, one call per run):
 
 Files are synced by the provider's own mechanism; this adapter only runs
 programs. Replace `_post` to fit a specific provider.
+
+ホスト型サンドボックスのアダプタ。
+
+契約は HTTPS 上の JSON で、1回の実行につき1回の呼び出しとなる。形式は上の例のとおり
+であり、`POST {base_url}/run` に `argv`、`cwd`、`timeout`、`stdin`、`workspace_id`
+を送り、`stdout`、`stderr`、`exit_code`、`timed_out` を受け取る。
+
+ファイルの同期は提供側の仕組みに任せ、このアダプタはプログラムを実行するだけで
+ある。特定の提供者に合わせるには `_post` を置き換える。
 """
 
 from __future__ import annotations

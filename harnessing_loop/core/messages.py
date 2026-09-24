@@ -9,6 +9,18 @@ Repairs:
   error result. Needed after aborts, model errors, and on resume.
 - `drop_empty_assistant()` removes assistant messages that hold only
   thinking or whitespace, which are rejected by the API on resume.
+
+メッセージと内容ブロックの型、そしてループが頼る修復処理。
+
+会話は Message オブジェクトのリストである。各メッセージは内容ブロックを持つ。
+text、thinking、tool_use、tool_result である。API の形は `to_api()` が作り、
+それ以外はワイヤ形式に触らない。
+
+修復処理:
+- `repair_orphans()` は、`tool_result` を伴わない `tool_use` すべてに、合成した
+  エラー結果を与える。中断、モデルのエラー、再開のあとに必要になる。
+- `drop_empty_assistant()` は、thinking または空白だけを持つアシスタント
+  メッセージを取り除く。再開時に API がそれらを拒むためである。
 """
 
 from __future__ import annotations
@@ -90,9 +102,11 @@ class Message:
     usage: Usage | None = None
     stop_reason: str | None = None
     meta: bool = False  # injected by the harness, not typed by a person
+    # ハーネスが注入したものであり、人が打ち込んだものではない。
     kind: str = "normal"  # "normal" | "compact_boundary" | "attachment"
 
     # ---- helpers ---------------------------------------------------------
+    # ---- 補助 ------------------------------------------------------------
     @classmethod
     def user(cls, text: str, *, meta: bool = False, kind: str = "normal") -> "Message":
         return cls(role="user", content=[TextBlock(text)], meta=meta, kind=kind)
@@ -121,6 +135,7 @@ class Message:
 
 
 # ---- wire format ----------------------------------------------------------
+# ---- ワイヤ形式 -----------------------------------------------------------
 
 def block_to_api(block: Block) -> dict[str, Any]:
     if isinstance(block, TextBlock):
@@ -167,7 +182,10 @@ def block_from_api(d: dict[str, Any]) -> Block:
 
 
 def to_api(messages: Iterable[Message]) -> list[dict[str, Any]]:
-    """Messages in API shape. Thinking blocks stay in assistant turns."""
+    """Messages in API shape. Thinking blocks stay in assistant turns.
+
+    メッセージを API の形にする。thinking ブロックはアシスタントのターンに残す。
+    """
     out = []
     for m in messages:
         out.append({"role": m.role, "content": [block_to_api(b) for b in m.content]})
@@ -202,6 +220,7 @@ def message_from_record(d: dict[str, Any]) -> Message:
 
 
 # ---- repairs --------------------------------------------------------------
+# ---- 修復処理 -------------------------------------------------------------
 
 ORPHAN_TEXT = "Tool call was interrupted before it produced a result."
 
@@ -211,6 +230,11 @@ def repair_orphans(messages: list[Message], reason: str = ORPHAN_TEXT) -> list[M
 
     Works in place on a copy. Adds one synthetic error result per orphan
     immediately after the assistant message that issued it.
+
+    すべての `tool_use` のあとに `tool_result` が続くようにする。
+
+    複製の上で直接書き換える。孤立した1件ごとに、それを発したアシスタント
+    メッセージの直後へ合成したエラー結果を1つ足す。
     """
     out: list[Message] = []
     i = 0
@@ -249,7 +273,10 @@ def repair_orphans(messages: list[Message], reason: str = ORPHAN_TEXT) -> list[M
 
 
 def drop_empty_assistant(messages: list[Message]) -> list[Message]:
-    """Drop assistant messages that carry no text, no tool_use, and no image."""
+    """Drop assistant messages that carry no text, no tool_use, and no image.
+
+    text も `tool_use` も画像も持たないアシスタントメッセージを落とす。
+    """
     kept = []
     for m in messages:
         if m.role == "assistant":
@@ -264,7 +291,10 @@ def drop_empty_assistant(messages: list[Message]) -> list[Message]:
 
 
 def merge_adjacent_user(messages: list[Message]) -> list[Message]:
-    """The API needs strictly alternating roles. Merge neighbouring user turns."""
+    """The API needs strictly alternating roles. Merge neighbouring user turns.
+
+    API は役割が厳密に交互であることを要求する。隣り合うユーザーのターンを統合する。
+    """
     out: list[Message] = []
     for m in messages:
         if out and out[-1].role == "user" and m.role == "user":
@@ -283,7 +313,10 @@ def merge_adjacent_user(messages: list[Message]) -> list[Message]:
 
 
 def normalize_for_api(messages: list[Message]) -> list[Message]:
-    """All repairs in the order the API needs them."""
+    """All repairs in the order the API needs them.
+
+    API が要求する順序ですべての修復処理を適用する。
+    """
     fixed = repair_orphans(messages)
     fixed = drop_empty_assistant(fixed)
     fixed = merge_adjacent_user(fixed)
