@@ -13,6 +13,16 @@ Frontmatter:
 
 Recall is keyword scoring over name and description by default. A profile
 can plug in a model-based selector through `selector`.
+
+長期メモリ。1つの事実を1ファイルに置き、索引を持ち、関連度で想起する。
+
+配置は上のとおりである。`<memory_dir>/MEMORY.md` が索引で、1エントリ1行、上限つき。
+`<memory_dir>/<name>.md` がフロントマターと本文からなる。フロントマターの `name` は短い
+スラグ、`description` は想起に使う1行、`type` は `user` / `feedback` / `project` /
+`reference` のいずれかである。
+
+想起は既定では name と description に対するキーワードの採点である。プロファイルは
+`selector` を通じてモデルによる選択器を差し込める。
 """
 
 from __future__ import annotations

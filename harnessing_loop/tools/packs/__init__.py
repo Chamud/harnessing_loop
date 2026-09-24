@@ -7,6 +7,11 @@
     agents     subagent
     tasks      run_background, task_output, task_stop (needs a sandbox)
     meta       tool_search, define_tool
+
+ツールパック。プロファイルは、欲しいパックを名前で指定する。
+
+上の表は、パック名とそのパックが作るツールの対応である。`exec` と `tasks` は
+サンドボックスを必要とする。
 """
 
 from __future__ import annotations

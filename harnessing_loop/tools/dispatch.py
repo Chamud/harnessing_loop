@@ -3,6 +3,12 @@
 Consecutive calls that are all concurrency-safe run in parallel, capped by
 the config. Anything else runs one at a time, in order. Results come back
 in the original order regardless of how they ran.
+
+1つのアシスタントメッセージから来たツール呼び出しの束をディスパッチする。
+
+続けて並んだ呼び出しがすべて並行実行安全なら、設定の上限まで並列に実行する。
+それ以外は順番どおりに1つずつ実行する。どう実行したかにかかわらず、結果は元の
+順序で返る。
 """
 
 from __future__ import annotations

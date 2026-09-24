@@ -3,6 +3,12 @@
 A `Runtime` is built by a profile, or by hand in a script. The loop reads
 from it and never reaches for globals. Subagents get a `child()` with a
 smaller registry and their own state.
+
+1回の実行に必要なものを、一度だけ組み立てたもの。
+
+`Runtime` はプロファイルが組み立てるか、スクリプト内で手で組み立てる。ループは
+そこから読み、グローバルには手を伸ばさない。サブエージェントには、より小さな
+レジストリと自分の状態を持つ `child()` が渡される。
 """
 
 from __future__ import annotations
@@ -23,6 +29,7 @@ class Runtime:
     model: Any  # ModelClient
     registry: Any  # tools.Registry
     system_prompt: str  # static, cached
+    # 静的であり、キャッシュされる。
     permissions: Any  # safety.PermissionContext
     hooks: Any  # safety.HookRegistry
     sandbox: Any = None  # sandbox.Sandbox

@@ -7,6 +7,15 @@ because everything before it is represented by the summary.
 
 Other record kinds (`run_start`, `run_end`, `note`) carry metadata and are
 skipped when rebuilding messages.
+
+トランスクリプト。1行に1つの JSON レコード、追記のみ。
+
+各メッセージのレコードは自分の id と親の id を持つので、ファイルは鎖になる。コンパクション
+は、その直前のメッセージを親とする境界レコードを書く。再開のための読み込みは最後の境界から
+始まる。それより前はすべて要約で代表されているからである。
+
+他の種類のレコード（`run_start`、`run_end`、`note`）はメタデータを運び、メッセージを
+組み直すときは読み飛ばされる。
 """
 
 from __future__ import annotations
@@ -29,6 +38,7 @@ class Transcript:
         self._last_id: str | None = None
 
     # ---- writing ------------------------------------------------------------------
+    # ---- 書き込み ------------------------------------------------------------------
     def _write(self, record: dict[str, Any]) -> None:
         record.setdefault("ts", time.time())
         record.setdefault("session", self.session_id)
@@ -53,6 +63,7 @@ class Transcript:
         self._last_id = boundary_message.id
 
     # ---- reading ---------------------------------------------------------------------
+    # ---- 読み取り ---------------------------------------------------------------------
     def records(self) -> Iterator[dict[str, Any]]:
         if not self.path.exists():
             return
@@ -67,6 +78,7 @@ class Transcript:
                     yield json.loads(line)
                 except json.JSONDecodeError:
                     continue  # a torn last line after a crash
+                    # クラッシュ後に途中で切れた最終行
 
     def load_all(self) -> list[Message]:
         by_id: dict[str, Message] = {}
@@ -81,6 +93,8 @@ class Transcript:
             return []
         # Walk back from the last message through parent ids; this drops
         # records from abandoned branches if a session was ever forked.
+        # 最後のメッセージから親の id をたどって遡る。セッションが分岐していた場合、
+        # 捨てられた枝のレコードはこれで落ちる。
         chain: list[Message] = []
         cur: str | None = order[-1]
         seen: set[str] = set()
@@ -93,7 +107,10 @@ class Transcript:
         return chain
 
     def load_live(self) -> list[Message]:
-        """Messages from the last compaction boundary onward, repaired for the API."""
+        """Messages from the last compaction boundary onward, repaired for the API.
+
+        最後のコンパクション境界以降のメッセージ。API 向けに修復済み。
+        """
         chain = self.load_all()
         start = 0
         for i, m in enumerate(chain):

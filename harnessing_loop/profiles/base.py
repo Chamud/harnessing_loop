@@ -7,6 +7,11 @@ an application.
     Loop(runtime).run("do the thing")
 
 Everything a profile can set is documented in `template_app.yaml`.
+
+プロファイル。チャットエージェントとアプリケーションの違いは、1 つの YAML
+ファイルだけである。
+
+プロファイルが設定できるものはすべて `template_app.yaml` に記されている。
 """
 
 from __future__ import annotations
@@ -74,6 +79,7 @@ class Profile:
     extra_gates: dict[str, Any] = field(default_factory=dict, repr=False)
 
     # ---- loading ------------------------------------------------------------------------
+    # ---- 読み込み ----
     @classmethod
     def from_dict(cls, data: dict[str, Any], source: Path | None = None) -> "Profile":
         known = {f for f in cls.__dataclass_fields__}
@@ -98,6 +104,7 @@ class Profile:
         return replace(self, **kw)
 
     # ---- building ---------------------------------------------------------------------------
+    # ---- 組み立て ----
     def build(
         self,
         workspace: str | Path,
@@ -138,9 +145,11 @@ class Profile:
         )
 
         # model
+        # モデル
         client = model if model is not None and not isinstance(model, str) else make_client(model or self.model, cache_ttl=self.cache_ttl)
 
         # tools
+        # ツール
         registry = Registry()
         for pack in self.tool_packs:
             for t in make_pack(pack):
@@ -156,6 +165,7 @@ class Profile:
         load_dynamic_tools(registry, ws)
 
         # skills
+        # スキル
         skills = None
         if self.skills.get("enabled", False) or self.skills.get("dirs"):
             dirs = [ws / d if not Path(d).is_absolute() else Path(d) for d in self.skills.get("dirs", ["skills"])]
@@ -163,6 +173,7 @@ class Profile:
             registry.add(SkillTool(skills))
 
         # permissions
+        # 権限
         rules = parse_rules({k: self.permissions.get(k, []) for k in ("allow", "deny", "ask")})
         mode = self.permissions.get("mode", "default")
         dropped: list = []
@@ -170,11 +181,16 @@ class Profile:
             # Opt-in: remove allow rules that grant arbitrary code execution (python *, bash *, ...).
             # Useful when rules come from untrusted config. Off by default because an explicit
             # allow written by the operator is a decision, and the sandbox is the real boundary.
+            # 任意で有効にする設定。任意コードの実行を許す allow ルール（python *、
+            # bash * など）を取り除く。信頼できない設定からルールが来るときに有用である。
+            # 既定で無効なのは、運用者が明示的に書いた allow は 1 つの判断であり、
+            # 実際の境界はサンドボックスだからである。
             rules, dropped = strip_dangerous_allow_rules(rules)
         removed = registry.apply_deny_rules(rules)
         permissions = PermissionContext(mode=mode, rules=rules, workspace=ws, ask_handler=ask_handler)
 
         # sandbox
+        # サンドボックス
         sandbox = None
         if self.sandbox:
             sb = self.sandbox
@@ -196,6 +212,7 @@ class Profile:
             raise ConfigError(f"profile {self.name!r} has exec tools but no sandbox section")
 
         # hooks
+        # フック
         hooks = HookRegistry(workspace=str(ws))
         for h in self.hooks:
             hooks.command(h["event"], h["command"] if isinstance(h["command"], list) else [h["command"]], matcher=h.get("matcher"), timeout=float(h.get("timeout", 60)), name=h.get("name", ""))
@@ -203,6 +220,7 @@ class Profile:
             hooks.on(event, fn, matcher=matcher)
 
         # gates
+        # ゲート
         gates = None
         if self.phases or self.gates:
             gates = Gates(phases=list(self.phases), entry=_build_reqs_map(self.gates.get("entry", {})), finish=_build_reqs(self.gates.get("finish", [])))
@@ -211,6 +229,7 @@ class Profile:
             gates.finish.extend(self.extra_gates.get("finish", []))
 
         # persistence
+        # 永続化
         sid = session_id or uuid.uuid4().hex[:12]
         transcript = Transcript(ws / ".harness" / "transcript.jsonl", sid) if self.transcript else None
         checkpoints = Checkpoints(ws) if self.checkpoints else None
@@ -254,6 +273,7 @@ class Profile:
 
 
 # ---- gate specs from YAML -------------------------------------------------------------------
+# ---- YAML からのゲート仕様 ----
 
 def _build_req(spec: Any):
     if isinstance(spec, str):
@@ -288,6 +308,7 @@ def _build_reqs_map(m: dict[str, list[Any]]) -> dict[str, list]:
 
 
 # ---- lookup -----------------------------------------------------------------------------------
+# ---- 検索 ----
 
 def list_profiles() -> list[str]:
     return sorted(p.stem for p in PROFILES_DIR.glob("*.yaml"))

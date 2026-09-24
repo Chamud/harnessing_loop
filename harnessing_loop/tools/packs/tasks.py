@@ -4,6 +4,13 @@ Output goes to a file under `.harness/tasks/`. `task_output` returns only
 the bytes the model has not seen yet. A task ends when its command ends or
 its timeout fires; `task_stop` asks for an early stop, which the local and
 container backends honour at the next timeout check.
+
+バックグラウンドタスク。ターンを止めるべきでない、長いコマンドのためのもの。
+
+出力は `.harness/tasks/` の下のファイルへ行く。`task_output` はモデルがまだ見て
+いない分だけを返す。タスクは、そのコマンドが終わるか、タイムアウトが発火したときに
+終わる。`task_stop` は早めの停止を要求し、local とコンテナのバックエンドは次の
+タイムアウト検査のときにそれに従う。
 """
 
 from __future__ import annotations

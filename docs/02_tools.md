@@ -1,5 +1,7 @@
 # Tools
 
+[日本語](ja/02_tools.md)
+
 This doc covers the `Tool` protocol in `harnessing_loop/tools/base.py`, the call pipeline, the dispatcher, the registry, the packs, and how to add a tool.
 
 ## The Tool class

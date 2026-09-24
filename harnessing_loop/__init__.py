@@ -7,6 +7,11 @@ the job is done. Import the pieces you need or load a profile and run.
     runtime = load_profile("chat").build(workspace="./work")
     loop = Loop(runtime)
     result = loop.run("Summarize the files in this folder.")
+
+harnessing_loop。エージェントの中核。
+
+1 つの VLM、1 つのループ、ツール一式、サンドボックス、そして仕事が終わったかを
+判断するゲート。必要な部品を import するか、プロファイルを読み込んで実行する。
 """
 
 from .core.loop import Loop

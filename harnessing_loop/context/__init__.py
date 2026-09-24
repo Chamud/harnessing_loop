@@ -1,4 +1,7 @@
-"""Context management: what the model sees each turn and how it is kept small."""
+"""Context management: what the model sees each turn and how it is kept small.
+
+コンテキスト管理。モデルが毎ターン見るもの、そしてそれを小さく保つ方法。
+"""
 
 from .tokens import conversation_tokens, estimate_tokens
 from .compact import should_compact, is_blocking, compact

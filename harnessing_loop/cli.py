@@ -4,6 +4,12 @@
     hloop resume --profile coder --workspace ./work
     hloop control --workspace ./work --cancel | --pause | --resume | --send "text"
     hloop profiles
+
+コマンドラインの入口。上にあるのは使い方の例である。
+
+`hloop run` は新しい実行を始め、`hloop resume` はワークスペースの前回の実行を
+続ける。`hloop control` は動いているループを操作し、`hloop profiles` は同梱の
+プロファイルを一覧する。
 """
 
 from __future__ import annotations

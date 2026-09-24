@@ -1,5 +1,7 @@
 # State on disk
 
+[日本語](ja/04_state_on_disk.md)
+
 This doc covers every file the harness writes under `.harness/`, how a run is resumed from them, and how an operator steers a live run through them.
 
 The principle: the conversation is disposable. Context can be compacted, truncated, or lost to a crash. Real state lives in files, and the loop is rebuilt from them.

@@ -8,6 +8,14 @@ After each turn, the highest phase whose evidence key is present becomes
 the current phase, but only moving forward. The model's own `set_phase`
 calls are respected; inference only catches the case where the model did
 the work without declaring it.
+
+証跡からのフェーズ推定。
+
+プロファイルは、上の `PHASE_EVIDENCE` の例のように証跡のキーをフェーズへ対応づけられる。
+
+各ターンのあと、証跡のキーが存在する最も先のフェーズが現在のフェーズになる。ただし前に進む
+方向だけである。モデル自身の `set_phase` の呼び出しは尊重される。推定は、モデルが宣言せずに
+作業を終えた場合だけを捕まえる。
 """
 
 from __future__ import annotations

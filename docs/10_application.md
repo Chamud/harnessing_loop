@@ -1,5 +1,7 @@
 # Building an application
 
+[日本語](ja/10_application.md)
+
 How a runtime becomes a service: jobs, worker processes, control, event streaming, and the pieces you change for your own domain.
 
 ## The shape

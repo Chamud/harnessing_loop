@@ -1,5 +1,7 @@
 # Scaling the tool set
 
+[日本語](ja/09_scaling_tools.md)
+
 This doc covers the six mechanisms that let a profile carry many capabilities without paying for all of them every turn: deferred tools, subagents, background tasks, model-defined tools, skills, and memory recall.
 
 | Mechanism | What it saves | When to use |

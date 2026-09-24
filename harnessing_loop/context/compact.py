@@ -10,6 +10,18 @@ sections. The reply is parsed, the conversation is rebuilt as
 
 The summary sections exist so nothing structural is lost: intent, files,
 errors and how they were fixed, what is pending, and the exact next step.
+
+完全なコンパクション。会話を構造化された要約に置き換える。
+
+いつ: 推定コンテキストが `window - compact_buffer` に達したとき。`window - blocking_buffer`
+に達していて、コンパクションが無効または失敗しているときは、API でエラーになる代わりに
+`blocking_limit` で実行を止める。
+
+どのように: ツールを与えずに、決まったセクションを持つ要約をモデルに書かせる。応答を解析し、
+会話を [境界 + 要約] + [残したテール] として組み直し、ループを続ける。
+
+要約のセクションは、構造的なものを何も失わないために存在する。意図、ファイル、失敗した内容と
+その解決方法、保留中の作業、そして正確な次の一手である。
 """
 
 from __future__ import annotations
@@ -90,7 +102,10 @@ def parse_summary(text: str) -> str:
 
 
 def split_tail(messages: list[Message], keep_tokens: int = TAIL_KEEP_TOKENS) -> tuple[list[Message], list[Message]]:
-    """Return (head, tail). The tail starts at a user message that is not a tool result."""
+    """Return (head, tail). The tail starts at a user message that is not a tool result.
+
+    (head, tail) を返す。テールは、ツール結果ではないユーザメッセージから始まる。
+    """
     budget = 0
     cut = len(messages)
     for i in range(len(messages) - 1, -1, -1):
@@ -118,7 +133,10 @@ def summarize(model: Any, messages: list[Message], config: Any, system: list[dic
 
 
 def compact(model: Any, messages: list[Message], config: Any, *, keep_tail: bool = True) -> tuple[str, list[Message]]:
-    """Return (summary, tail_messages). Raises whatever the model client raises."""
+    """Return (summary, tail_messages). Raises whatever the model client raises.
+
+    (summary, tail_messages) を返す。モデルクライアントが投げた例外はそのまま投げる。
+    """
     head, tail = split_tail(messages) if keep_tail else (messages, [])
     if not head:
         head, tail = messages, []

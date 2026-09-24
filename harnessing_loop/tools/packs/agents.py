@@ -4,6 +4,13 @@ The child gets its own message history, a subset of tools, the same sandbox
 and permissions, and a copy of the file state cache. Only its final text
 comes back as one tool result. Subagents cannot spawn subagents beyond the
 configured depth, and never see `finish` or `define_tool`.
+
+サブエージェント。区切られた仕事のための、まっさらなコンテキスト。
+
+子は自分専用のメッセージ履歴、ツールの部分集合、同じサンドボックスと権限、そして
+ファイル状態キャッシュの複製を受け取る。返ってくるのは最後のテキストだけで、1つの
+ツール結果になる。サブエージェントは設定された深さを超えてサブエージェントを起動
+できず、`finish` と `define_tool` は見えない。
 """
 
 from __future__ import annotations
@@ -50,6 +57,7 @@ class Subagent(Tool):
 
     def call(self, input: dict[str, Any], ctx: ToolContext) -> ToolResult:
         from ...core.loop import Loop  # local import: the loop imports tools
+        # ここで import するのは、ループ側がツールを import しているため。
 
         runtime = ctx.extra["runtime"]
         wanted = input.get("tools")

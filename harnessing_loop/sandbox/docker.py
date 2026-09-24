@@ -13,6 +13,21 @@ Flags and why:
 
 Requires the `docker` command on the host. Works on any engine that
 accepts the same flags.
+
+コンテナによるバックエンド。呼び出しごとにコンテナを1つ作り、終わったら破棄する。
+
+フラグとその理由:
+    --rm                        ワークスペース以外、呼び出しの後に何も残らない
+    --network none              ネットワークは一切ない（入口はプロキシだけ）
+    --read-only + --tmpfs /tmp  イメージは変更できない
+    -v workspace:/work          書き込めるホスト側のパスはここだけ
+    --user 1000:1000            コンテナの内側で root ではない
+    --cap-drop ALL              カーネルのケーパビリティを持たない
+    --security-opt no-new-privileges
+    --memory / --cpus / --pids-limit
+    -e only from the policy     ホストの環境は決して入らない
+
+ホストに `docker` コマンドが必要である。同じフラグを受け付けるエンジンであれば動く。
 """
 
 from __future__ import annotations
@@ -108,4 +123,6 @@ def _sq(s: str) -> str:
 
 if sys.platform == "win32":  # pragma: no cover - documentation only
     # Docker Desktop mounts Windows paths; the workspace path is passed as-is.
+    # Docker Desktop は Windows のパスをマウントする。ワークスペースのパスはそのまま
+    # 渡される。
     pass

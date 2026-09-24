@@ -2,6 +2,11 @@
 
 Prices are per million tokens. Unknown models cost zero, which keeps the
 tracker honest: it never invents a number it cannot back.
+
+モデルごとのトークンとコストの積み上げ。
+
+価格は100万トークンあたりである。未知のモデルはコスト0として扱う。これにより
+集計は正直なままになる。裏づけのない数値を作り出すことはない。
 """
 
 from __future__ import annotations
@@ -11,6 +16,7 @@ from dataclasses import dataclass, field
 from .messages import Usage
 
 # input, output, cache_read, cache_write in USD per 1M tokens.
+# input、output、cache_read、cache_write の順。100万トークンあたりの USD である。
 PRICES: dict[str, tuple[float, float, float, float]] = {
     "opus": (15.0, 75.0, 1.5, 18.75),
     "sonnet": (3.0, 15.0, 0.3, 3.75),

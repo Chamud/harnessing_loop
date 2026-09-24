@@ -6,6 +6,13 @@
 
 Writes are atomic (temp file + replace), so a reader never sees a torn
 file. Any process with access to the workspace can steer the run.
+
+制御ファイル。オペレータが動いているループに話しかける手段である。
+
+`.harness/control.json` は、ループが毎ターン確認するフラグを持つ。形は上の例のとおりである。
+
+書き込みは原子的（一時ファイル + 置き換え）なので、読む側が壊れかけのファイルを見ることは
+ない。ワークスペースにアクセスできるプロセスなら、どれでも実行を操舵できる。
 """
 
 from __future__ import annotations

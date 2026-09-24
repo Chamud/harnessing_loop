@@ -12,6 +12,14 @@ Layout: `<skills_dir>/<name>/SKILL.md` with frontmatter:
 Only name, description and when_to_use are in the system prompt. The full
 text is returned by the `skill` tool when invoked, and the model can write
 new skills into the workspace skills dir with write_file.
+
+スキル。テキストで書かれた手順を、必要なときに読み込む。
+
+配置は `<skills_dir>/<name>/SKILL.md` で、上のようなフロントマターを付ける。
+
+システムプロンプトに入るのは name、description、when_to_use だけである。全文は
+`skill` ツールが呼ばれたときに返される。モデルは write_file でワークスペースの
+skills ディレクトリに新しいスキルを書くこともできる。
 """
 
 from __future__ import annotations

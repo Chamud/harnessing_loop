@@ -1,4 +1,7 @@
-"""Readers for the files the planning tools write."""
+"""Readers for the files the planning tools write.
+
+計画用のツールが書くファイルの読み取り。
+"""
 
 from __future__ import annotations
 

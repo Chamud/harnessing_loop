@@ -4,6 +4,13 @@ Old file reads, command output and search results are the bulk of a long
 context and are rarely needed again verbatim. Their content is replaced by
 a marker. The tool_use and tool_result blocks stay, so the structure the
 API requires is intact and the model still sees what it did.
+
+マイクロコンパクション。古いツール結果を消し、会話の形は保つ。
+
+古いファイル読み取り、コマンド出力、検索結果は長いコンテキストの大部分を占めるが、そのままの
+形で再び必要になることはまずない。その内容はマーカーに置き換えられる。tool_use と
+tool_result のブロックは残るので、API が要求する構造は保たれ、モデルは自分が何をしたかを
+引き続き見られる。
 """
 
 from __future__ import annotations
@@ -33,6 +40,7 @@ def microcompact(messages: list[Message], keep_recent: int = 5, compactable: set
             if isinstance(b, ToolUseBlock):
                 names[b.id] = b.name
     candidates: list[tuple[int, int]] = []  # (message index, block index)
+    # （メッセージのインデックス, ブロックのインデックス）
     for mi, m in enumerate(messages):
         for bi, b in enumerate(m.content):
             if isinstance(b, ToolResultBlock) and names.get(b.tool_use_id) in compactable:

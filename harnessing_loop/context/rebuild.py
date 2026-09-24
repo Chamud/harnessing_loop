@@ -6,6 +6,15 @@ Order: boundary message with the summary, then re-attached state from disk
 The disk state is the point. Notes and todos were written by the model as
 it worked; they come back verbatim. Files come back fresh, so the model is
 never editing from a stale memory of them.
+
+コンパクションのあとに会話を再構築する。
+
+順番は、要約を含む境界メッセージ、次にディスクから読み直した状態（ノート、TODO リスト、
+直近に読んだファイル）、最後に残したテールである。
+
+ディスク上の状態が要点である。ノートと TODO は作業しながらモデル自身が書いたものであり、
+そのまま戻ってくる。ファイルは新しく読み直して戻るので、モデルが古い記憶をもとに編集する
+ことはない。
 """
 
 from __future__ import annotations

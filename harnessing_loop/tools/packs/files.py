@@ -3,6 +3,12 @@
 Reads bound themselves and never spill to disk (a spilled read would just be
 read again). Writes and edits go through the file state cache and the
 checkpoint store.
+
+ファイルツール。ハーネスのプロセス内で動くため、すべてのパスを検査する。
+
+読み取りは自ら大きさを抑え、ディスクへ退避しない（退避しても、また読み直される
+だけである）。書き込みと編集は、ファイル状態キャッシュとチェックポイントの保管庫を
+通る。
 """
 
 from __future__ import annotations

@@ -9,6 +9,18 @@ a verifier passed). The loop reads it to infer progress.
 
 `Terminal` and `Continue` are the only two ways an iteration ends. Their
 `reason` strings are the vocabulary tests assert against.
+
+実行状態、設定のスナップショット、そして型付きのループ遷移。
+
+`RunConfig` は実行の開始時に一度だけ読まれる。実行中に環境から設定を読むものは
+なく、ターンの間で挙動が入れ替わることはない。
+
+`RunState` はループが反復をまたいで持ち運ぶ可変の構造体である。ツールは証跡を
+生み出したとき（ファイルを書いた、検証スクリプトが通った）に、自分のコンテキスト
+を通してこれを更新する。ループはこれを読んで進捗を推定する。
+
+`Terminal` と `Continue` は、反復が終わる唯一の2つの形である。その `reason`
+文字列が、試験が突き合わせる語彙になる。
 """
 
 from __future__ import annotations
@@ -30,6 +42,7 @@ class RunConfig:
     thinking_budget_tokens: int = 8000
     temperature: float | None = None
     # context management
+    # コンテキスト管理
     compact_enabled: bool = True
     compact_buffer_tokens: int = 13_000
     blocking_buffer_tokens: int = 3_000
@@ -38,16 +51,20 @@ class RunConfig:
     microcompact_keep_recent: int = 5
     microcompact_min_tokens: int = 40_000
     # tools
+    # ツール
     tool_result_max_chars: int = 50_000
     tool_results_budget_per_message: int = 200_000
     tool_result_preview_chars: int = 2_000
     max_tool_concurrency: int = 10
     # recovery
+    # 回復
     max_output_recovery_attempts: int = 3
     # stuck detection
+    # スタック検出
     stuck_repeat_limit: int = 3
     stuck_no_evidence_turns: int = 12
     # sandbox
+    # サンドボックス
     allow_unsafe_local: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -65,6 +82,7 @@ class RunState:
     notes: list[str] = field(default_factory=list)
     verify: dict[str, Any] | None = None
     last_tool_calls: list[tuple[str, str]] = field(default_factory=list)  # (name, input-hash)
+    # (ツール名, 入力のハッシュ) の組。
     turns_without_evidence: int = 0
     compactions: int = 0
     compact_failures: int = 0

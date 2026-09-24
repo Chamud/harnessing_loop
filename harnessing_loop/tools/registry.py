@@ -5,6 +5,14 @@
 - schemas are emitted sorted by name so the cached prefix stays stable
 - deferred tools are sent as name-only stubs until `tool_search` loads
   them; loading is tracked here
+
+ツールレジストリ。
+
+- ツールは名前で保管される。包括的な deny ルールは、モデルから見えないように
+  ツールごと削除する
+- スキーマは名前順で出力されるため、キャッシュプレフィックスが安定する
+- 遅延ツールは `tool_search` が読み込むまで名前だけのスタブとして送られる。
+  読み込んだかどうかはここで追跡する
 """
 
 from __future__ import annotations
@@ -24,6 +32,7 @@ class Registry:
             self.add(t)
 
     # ---- membership -----------------------------------------------------------
+    # ---- 所属 -----------------------------------------------------------------
     def add(self, tool: Tool, *, dynamic: bool = False) -> None:
         if not tool.name:
             raise ValueError("tool has no name")
@@ -57,6 +66,7 @@ class Registry:
         return r
 
     # ---- properties -------------------------------------------------------------
+    # ---- 性質 -------------------------------------------------------------------
     def has_exec_tools(self) -> bool:
         return any(t.category == "exec" for t in self._tools.values())
 
@@ -76,8 +86,12 @@ class Registry:
         return loaded
 
     # ---- wire ------------------------------------------------------------------------
+    # ---- 送信形式 --------------------------------------------------------------------
     def apply_deny_rules(self, rules: Iterable[Rule]) -> list[str]:
-        """Remove tools with a blanket deny. Returns removed names."""
+        """Remove tools with a blanket deny. Returns removed names.
+
+        包括的な deny の対象になるツールを削除する。削除した名前を返す。
+        """
         removed = []
         for r in rules:
             if r.behavior == "deny" and not r.content_specific and r.tool in self._tools:
@@ -94,7 +108,11 @@ class Registry:
         return out
 
     def deferred_stub_text(self) -> str:
-        """Text for the system prompt listing tools that exist but are not loaded."""
+        """Text for the system prompt listing tools that exist but are not loaded.
+
+        存在するがまだ読み込まれていないツールを列挙する、システムプロンプト用の
+        文面。
+        """
         names = self.deferred_names()
         if not names:
             return ""

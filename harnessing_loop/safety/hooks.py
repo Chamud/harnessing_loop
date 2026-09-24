@@ -25,6 +25,36 @@ Merging several results for one event:
 
 A hook's allow never overrides a deny rule or an immune decision. That is
 enforced in tools/pipeline.py, not here.
+
+フック: ポリシー、ログ、ゲートのための拡張点。
+
+イベント（角括弧内はペイロードのフィールド）:
+    session_start        [workspace, profile]
+    user_prompt          [prompt]                 コンテキストを追加できる
+    pre_tool_use         [tool, input]            allow/deny/ask、input の書き換え、
+                                                  コンテキストの追加、停止ができる
+    post_tool_use        [tool, input, result]    コンテキストを追加できる
+    post_tool_failure    [tool, input, error]     コンテキストを追加できる
+    stop                 [final_text, state]      停止を阻止して継続を強制できる
+    pre_compact          [messages]               （要約されようとしているメッセージの件数）
+    post_compact         [summary]
+    session_end          [reason]
+
+フックの種類:
+    python   `fn(payload) -> HookResult | dict | None` という呼び出し可能オブジェクト
+    command  サブプロセス。ペイロードは JSON として stdin に渡る。終了コード 2 は
+             stderr を理由としてブロックし、終了コード 0 で stdout に JSON があれば
+             HookResult として解釈される
+
+1つのイベントに対する複数の結果の統合:
+    deny が1つでもあれば deny。なければ ask が1つでもあれば ask。
+    なければ allow が1つでもあれば allow
+    stop が1つでもあれば stop
+    コンテキストは連結される
+    空でない最後の updated_input が採用される
+
+フックの allow が deny ルールやバイパス不可の判定を覆すことはない。これはここでは
+なく tools/pipeline.py で強制される。
 """
 
 from __future__ import annotations
@@ -62,11 +92,14 @@ class Events:
 @dataclass
 class HookResult:
     decision: str | None = None  # allow | deny | ask | None
+    # decision は allow | deny | ask | None のいずれか
     reason: str = ""
     updated_input: dict[str, Any] | None = None
     additional_context: str = ""
     stop: bool = False  # stop the run now
+    # stop は実行を直ちに終わらせる
     block_stop: bool = False  # for the stop event: do not let the model finish
+    # block_stop は stop イベント用で、モデルに応答を終わらせない
     name: str = ""
 
     @classmethod
@@ -95,6 +128,7 @@ class HookResult:
 class Hook:
     event: str
     matcher: str | None  # fnmatch on tool name, or None for all
+    # matcher はツール名に対する fnmatch。None はすべてに一致する
     fn: Callable[[dict[str, Any]], Any] | None = None
     command: list[str] | None = None
     timeout: float = 60.0
@@ -125,6 +159,7 @@ class Hook:
         if proc.returncode == 2:
             return HookResult(decision="deny", reason=proc.stderr.strip() or "blocked by hook", block_stop=True, name=self.name)
         if proc.returncode != 0:
+            # ブロックしない失敗。無視され、呼び出し側が記録する
             return HookResult(name=self.name)  # non-blocking failure: ignored, logged by caller
         out = proc.stdout.strip()
         if not out:
@@ -154,6 +189,7 @@ class HookRegistry:
     def __init__(self, workspace: str | None = None) -> None:
         self._hooks: list[Hook] = []
         self.workspace = workspace  # command hooks run here, so relative script paths resolve
+        # command フックはここで動くため、相対的なスクリプトパスが解決できる
 
     def on(self, event: str, fn: Callable[[dict[str, Any]], Any], *, matcher: str | None = None, name: str = "") -> None:
         if event not in Events.ALL:
@@ -176,6 +212,7 @@ class HookRegistry:
             try:
                 r = h.run(payload, cwd=self.workspace)
             except Exception as exc:  # a crashing hook must not crash the run; it blocks instead
+                # 例外で落ちるフックが実行全体を落としてはならない。代わりにブロックする
                 r = HookResult(decision="deny", reason=f"hook {h.name} raised: {exc}", name=h.name)
             merged.results.append(r)
             if r.decision == "deny" or (merged.decision != "deny" and r.decision == "ask") or (

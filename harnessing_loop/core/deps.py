@@ -2,6 +2,11 @@
 
 Injecting these keeps the loop testable: the fake model, a fixed clock, and
 deterministic ids make every transition reproducible.
+
+ループがインポートせずに受け取る依存物。
+
+これらを注入することでループは試験可能になる。フェイクモデル、固定された時計、
+決定的な id により、すべての遷移が再現できる。
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ class Deps:
     uuid: Callable[[str], str] = new_id
     sleep: Callable[[float], None] = time.sleep
     tool_result_hook: Callable | None = field(default=None)  # test-only interception
+    # 試験専用の割り込み口。
 
     @classmethod
     def deterministic(cls) -> "Deps":

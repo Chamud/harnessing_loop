@@ -1,6 +1,10 @@
 """Persistence: transcript, checkpoints, memory, notes, and the control file.
 
 The conversation is disposable. Everything here is what actually survives.
+
+永続化。トランスクリプト、チェックポイント、メモリ、ノート、そして制御ファイル。
+
+会話は使い捨てである。ここにあるものだけが実際に生き残る。
 """
 
 from .transcript import Transcript

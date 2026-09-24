@@ -1,5 +1,7 @@
 # Context management
 
+[日本語](ja/07_compaction.md)
+
 This doc covers how the loop keeps a long run inside the context window: microcompaction, full compaction, the rebuild afterwards, the prompt cache layout, and what goes into the system prompt versus per-turn reminders.
 
 ## Three thresholds

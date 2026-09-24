@@ -3,6 +3,12 @@
 Only deltas are sent: a tool that became available, a background task that
 finished, a todo list that has gone stale. Nothing is repeated every turn,
 because repeated text costs tokens and trains the model to ignore it.
+
+ツール結果のメッセージに付け加える、ターンごとのリマインダ。
+
+差分だけを送る。使えるようになったツール、終わったバックグラウンドタスク、古くなった
+TODO リストである。毎ターン繰り返されるものは何もない。繰り返しの文章はトークンを食い、
+モデルにそれを無視することを覚えさせるからである。
 """
 
 from __future__ import annotations
@@ -28,6 +34,7 @@ def build_attachments(runtime: Any, state: Any, attach: AttachmentState, *, task
     notes: list[str] = []
 
     # newly available tools (loaded deferred or defined at runtime)
+    # 新しく使えるようになったツール（読み込まれた遅延ツール、または実行時に定義された動的ツール）
     reg = runtime.registry
     available = set(reg.loaded_deferred) | set(reg.dynamic)
     new_tools = sorted(available - attach.announced_tools)
@@ -36,6 +43,7 @@ def build_attachments(runtime: Any, state: Any, attach: AttachmentState, *, task
         attach.announced_tools |= set(new_tools)
 
     # finished background tasks
+    # 終了したバックグラウンドタスク
     if tasks:
         for tid, t in tasks.items():
             if getattr(t, "status", "running") != "running" and tid not in attach.announced_tasks:
@@ -43,18 +51,21 @@ def build_attachments(runtime: Any, state: Any, attach: AttachmentState, *, task
                 attach.announced_tasks.add(tid)
 
     # stale todo list
+    # 古くなった TODO リスト
     pending = [t for t in state.todos if t.get("status") != "completed"]
     if pending and state.turn - attach.last_todo_reminder_turn >= TODO_REMINDER_EVERY:
         notes.append(f"Todo list has {len(pending)} open item(s). Update it if progress was made.")
         attach.last_todo_reminder_turn = state.turn
 
     # date change across a long run
+    # 長い実行をまたいだ日付の変化
     today = dt.date.today().isoformat()
     if attach.last_date and attach.last_date != today:
         notes.append(f"The date is now {today}.")
     attach.last_date = today
 
     # operator messages from the control file
+    # 制御ファイルから届いたオペレータのメッセージ
     if inbox:
         fresh = inbox[attach.inbox_seen :]
         for msg in fresh:

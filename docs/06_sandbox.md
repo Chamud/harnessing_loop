@@ -1,5 +1,7 @@
 # The sandbox
 
+[日本語](ja/06_sandbox.md)
+
 This doc covers where model-written code runs, what each backend isolates, and how tools are routed between the harness process and the sandbox.
 
 ## Two trust zones

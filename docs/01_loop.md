@@ -1,5 +1,7 @@
 # The loop
 
+[日本語](ja/01_loop.md)
+
 This doc covers one iteration of `harnessing_loop/core/loop.py`, the reason vocabulary it exits with, the `Runtime` it reads from, and the event and cost objects it writes to.
 
 ## One iteration, in order
